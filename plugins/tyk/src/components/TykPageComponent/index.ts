@@ -1,0 +1,1 @@
+export {TykPageComponent} from './TykPageComponent';
