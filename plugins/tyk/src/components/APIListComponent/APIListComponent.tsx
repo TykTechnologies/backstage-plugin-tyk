@@ -3,6 +3,7 @@ import {Table, TableColumn, Progress, ResponseErrorPanel, LinkButton} from '@bac
 // import {fetchApiRef, useApi} from '@backstage/core-plugin-api';
 import useAsync from 'react-use/lib/useAsync';
 import {Button} from "@material-ui/core";
+import { useApi, configApiRef } from '@backstage/core-plugin-api';
 
 type APIDefinition = {
   id: string;
@@ -88,8 +89,11 @@ export const DenseTable = ({apiDefinitions}: DenseTableProps) => {
 
 export const APIListComponent = () => {
   // const {fetch} = useApi(fetchApiRef);
+  const config = useApi(configApiRef);
+  const backendUrl = config.getString('backend.baseUrl');
+  
   const {value, loading, error} = useAsync(async (): Promise<APIDefinition[]> => {
-    const response = await fetch('http://localhost:8080/dashboard/apis', {});
+    const response = await fetch(backendUrl + '/api/proxy/tyk/apis', {});
 
     const data = await response.json();
     const apis = data.apis;

@@ -12,7 +12,7 @@ backend:
   # auth:
   #   keys:
   #     - secret: ${BACKEND_SECRET}
-  baseUrl: http://localhost:3000
+  baseUrl: http://localhost:7007
   listen:
     port: 7007
     # Uncomment the following host directive to bind to specific interfaces
@@ -51,6 +51,12 @@ proxy:
   # '/test':
   #   target: 'https://example.com'
   #   changeOrigin: true
+  endpoints:
+    '/tyk': 
+      target: 'http://tyk-dashboard.localhost:3000/api'
+      headers:
+        # value of this header needs to be set to a valid key
+        Authorization: '9b60f7c4c52042105f3965c13cb92538'
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
