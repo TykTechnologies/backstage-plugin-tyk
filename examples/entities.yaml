@@ -82,8 +82,9 @@ spec:
   system: tyk
   providesApis:
     - tyk-gateway-api
-  dependsOn: 
-    - conponent:tyk-dashboard
+  dependsOn:
+    - component:default/tyk-dashboard
+    - resource:default/tyk-gateway-storage
 ---
 # https://backstage.io/docs/features/software-catalog/descriptor-format#kind-api
 apiVersion: backstage.io/v1alpha1
@@ -142,8 +143,6 @@ spec:
   lifecycle: production
   owner: guests
   system: tyk
-  dependsOn:
-  - resource:default/tyk-gateway-db
   definition: |
     openapi: "3.0.0"
     info:
@@ -160,7 +159,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: tyk-gateway-db
+  name: tyk-gateway-storage
   title: Tyk Gateway Redis
   description: Tyk Gateway data storage and pub/sub communication
 spec:
