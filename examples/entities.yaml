@@ -68,6 +68,12 @@ spec:
   providesApis:
     - tyk-dashboard-api
     - tyk-dashboard-admin-api
+    - tyk-dashboard-system-api
+  consumesApis:
+    - default/tyk-gateway-api
+  dependsOn:
+    - component:default/tyk-gateway
+    - resource:default/tyk-dashboard-storage
 ---
 # https://backstage.io/docs/features/software-catalog/descriptor-format#kind-component
 apiVersion: backstage.io/v1alpha1
@@ -82,9 +88,26 @@ spec:
   system: tyk
   providesApis:
     - tyk-gateway-api
+  consumesApis:
+    - default/tyk-dashboard-system-api
   dependsOn:
     - component:default/tyk-dashboard
     - resource:default/tyk-gateway-storage
+---
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tyk-pump
+  title: Tyk Pump
+spec:
+  type: service
+  lifecycle: production
+  owner: guests
+  system: tyk
+  dependsOn:
+    - resource:default/tyk-gateway-storage
+    - resource:default/tyk-dashboard-storage
 ---
 # https://backstage.io/docs/features/software-catalog/descriptor-format#kind-api
 apiVersion: backstage.io/v1alpha1
@@ -136,6 +159,29 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
+  name: tyk-dashboard-system-api
+  title: Tyk Dashboard System API
+spec:
+  type: http
+  lifecycle: production
+  owner: guests
+  system: tyk
+  definition: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Tyk Dashboard System API
+    servers:
+      - url: http://tyk-dashboard.localhost:3000/system
+    paths:
+      /node:
+        delete:
+          summary: Deregister a node
+---
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-api
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
   name: tyk-gateway-api
   title: Tyk Gateway API
 spec:
@@ -162,6 +208,18 @@ metadata:
   name: tyk-gateway-storage
   title: Tyk Gateway Redis
   description: Tyk Gateway data storage and pub/sub communication
+spec:
+  type: database
+  owner: guests
+  system: tyk
+---
+# https://backstage.io/docs/features/software-catalog/descriptor-format/#kind-resource
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: tyk-dashboard-storage
+  title: Tyk Dashboard MongoDB
+  description: Tyk Dashboard data storage
 spec:
   type: database
   owner: guests
