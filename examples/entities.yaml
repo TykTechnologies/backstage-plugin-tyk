@@ -142,6 +142,8 @@ spec:
   lifecycle: production
   owner: guests
   system: tyk
+  dependsOn:
+  - resource:default/tyk-gateway-db
   definition: |
     openapi: "3.0.0"
     info:
@@ -153,3 +155,15 @@ spec:
       /keys:
         get:
           summary: List all keys
+---
+# https://backstage.io/docs/features/software-catalog/descriptor-format/#kind-resource
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: tyk-gateway-db
+  title: Tyk Gateway Redis
+  description: Tyk Gateway data storage and pub/sub communication
+spec:
+  type: database
+  owner: guests
+  system: tyk
