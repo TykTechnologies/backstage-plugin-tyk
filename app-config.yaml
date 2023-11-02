@@ -56,7 +56,7 @@ proxy:
       target: 'http://tyk-dashboard.localhost:3000/api'
       headers:
         # value of this header needs to be set to a valid Tyk Dashboard API key
-        Authorization: 'c02354be27b74a0a5c02589a2b860763'
+        Authorization: 'add697f9194c475d6a127f482bfc9b8b'
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
@@ -98,6 +98,10 @@ catalog:
       target: ../../examples/org.yaml
       rules:
         - allow: [User, Group]
+
+    # Typical Tyk deployment example
+    - type: file
+      target: ../../tyk-catalog.yaml
 
     ## Uncomment these lines to add more example data
     # - type: url
