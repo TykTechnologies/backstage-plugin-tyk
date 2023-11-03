@@ -105,14 +105,7 @@ export class TykEntityProvider
     return apiData;
   }
 
-  async run(): Promise<void> {
-    this.logger.info("Running Tyk Entity Provider")
-    
-    if (!this.connection) {
-      throw new Error('Not initialized');
-    }
-
-    const apis = await this.getAllApis()
+  convertApisToResources(apis:ApiDefinition[]): ApiEntity[]{
     const apiResources: ApiEntity[] = []
 
     for (const api of apis) {
@@ -143,32 +136,25 @@ export class TykEntityProvider
       apiResources.push(apiEntity)
     }
 
+    return apiResources
+  }
+
+  async run(): Promise<void> {
+    this.logger.info("Running Tyk Entity Provider")
+    
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    const apis = await this.getAllApis()
+    const apiResources: ApiEntity[] = this.convertApisToResources(apis)
+
     await this.connection.applyMutation({
       type: 'full',
       entities: apiResources.map((entity) => ({
         entity,
-        locationKey: 'hr-user-https://www.hrurl.com/',
+        locationKey: `${this.getProviderName()}`,
       })),
-    })
-
-      // TODO: get tyk data
-
-      
-      // const response = await this.reader.readUrl(
-      //   `https://frobs-${this.env}.example.com/data`,
-      // );
-      // const data = JSON.parse(await response.buffer()).toString();
-  
-      /** [5] */
-      // const entities: Entity[] = frobsToEntities(data);
-  
-      /** [6] */
-      // await this.connection.applyMutation({
-      //   type: 'full',
-      //   entities: entities.map(entity => ({
-      //     entity,
-      //     locationKey: `frobs-provider:${this.env}`,
-      //   })),
-      // });
-    }
+    })  
+  }
 }
