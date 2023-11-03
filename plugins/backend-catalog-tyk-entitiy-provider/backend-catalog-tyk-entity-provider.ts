@@ -13,66 +13,162 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+} from '@backstage/catalog-model'
 import {
     EntityProvider,
     EntityProviderConnection,
-  } from '@backstage/plugin-catalog-node';
-  import { Logger } from 'winston';
-  import { UrlReader } from '@backstage/backend-common';
+} from '@backstage/plugin-catalog-node';
+import { Logger } from 'winston';
+import { UrlReader } from '@backstage/backend-common';
+import {kebabCase} from 'lodash'
 
-  export class TykEntityProvider
-    implements EntityProvider
-  {
-    private readonly env: string;
-    private readonly logger: Logger;
-    private readonly reader: UrlReader;
-    private connection?: EntityProviderConnection;
+type ApiDefinition = {
+  id: string
+  name: string
+}
 
-    constructor(opts: {
-      logger: Logger;
-      env: string;
-      reader: UrlReader;
-    }) {
-      const { logger, env, reader } = opts;
-      this.logger = logger;
-      this.env = env;
-      this.reader = reader;
-    }
-  
-    async connect(connection: EntityProviderConnection): Promise<void> {
-      this.connection=connection
-    }
-  
-    getProviderName(): string {
-      return `tyk-entity-provider-${this.env}`;
-    }
-
-    async run(): Promise<void> {
-        this.logger.info("Running Tyk Entity Provider")
-        
-        if (!this.connection) {
-          throw new Error('Not initialized');
-        }
-    
-        // TODO: get tyk data
-
-        
-        // const response = await this.reader.readUrl(
-        //   `https://frobs-${this.env}.example.com/data`,
-        // );
-        // const data = JSON.parse(await response.buffer()).toString();
-    
-        /** [5] */
-        // const entities: Entity[] = frobsToEntities(data);
-    
-        /** [6] */
-        // await this.connection.applyMutation({
-        //   type: 'full',
-        //   entities: entities.map(entity => ({
-        //     entity,
-        //     locationKey: `frobs-provider:${this.env}`,
-        //   })),
-        // });
-      }
+interface ApiEntity {
+  kind: string
+  apiVersion: string
+  metadata: {
+    annotations: {
+      [ANNOTATION_LOCATION]: string;
+      [ANNOTATION_ORIGIN_LOCATION]: string;
+    };
+    name: string;
+    title: string;
   }
+  spec: {
+    type: string;
+    id: string;
+    memberOf: never[];
+    lifecycle: string;
+    owner: string;
+    system: string;
+    definition: string;
+  }
+}
+
+export class TykEntityProvider
+  implements EntityProvider
+{
+  private readonly env: string;
+  private readonly logger: Logger;
+  private readonly reader: UrlReader;
+  private connection?: EntityProviderConnection;
+
+  // static fromConfig(config: Config, options: { logger: Logger }) {
+  //   const dashboardApiToken = config.getString('dashboardApi.token')
+  //   const dashboardApiUrl = config.getString('slack.token')
+  //   return new TykEntityProvider({
+  //     ...options,
+  //     logger,
+  //     env,
+  //   })
+  // }
+
+  constructor(opts: {
+    logger: Logger
+    env: string
+    reader: UrlReader
+  }) {
+    const { logger, env, reader } = opts
+    this.logger = logger
+    this.env = env
+    this.reader = reader
+  }
+
+  async connect(connection: EntityProviderConnection): Promise<void> {
+    this.connection=connection
+  }
+
+  getProviderName(): string {
+    return `tyk-entity-provider-${this.env}`
+  }
+
+  async getAllApis(): Promise<ApiDefinition[]>{
+    const response = await fetch('http://localhost:3000/api/apis', { headers: { Authorization: 'aa509b94c71b4dae7013592b02b658b8' } })
+    const data = await response.json()
+    const apis = data.apis
+    const apiData: ApiDefinition[] = []
+
+    apis.forEach((api: { api_definition: { api_id: any; name: any; }; }) => {
+      apiData.push({
+        id: api.api_definition.api_id,
+        name: api.api_definition.name
+      });
+    });
+
+    return apiData;
+  }
+
+  async run(): Promise<void> {
+    this.logger.info("Running Tyk Entity Provider")
+    
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    const apis = await this.getAllApis()
+    const apiResources: ApiEntity[] = []
+
+    for (const api of apis) {
+      this.logger.info(api.name)
+
+      const apiEntity: ApiEntity = {
+        kind: 'API',
+        apiVersion: 'backstage.io/v1alpha1',
+        metadata: {
+          annotations: {
+            [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
+            [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
+          },
+          name: kebabCase(api.name),
+          title: api.name,
+        },
+        spec: {
+          type: 'http',
+          id: api.id,
+          memberOf: [],
+          system: 'tyk',
+          owner: 'guests',
+          lifecycle: 'experimental',
+          definition: 'openapi: "3.0.0"'
+        },
+      }
+
+      apiResources.push(apiEntity)
+    }
+
+    await this.connection.applyMutation({
+      type: 'full',
+      entities: apiResources.map((entity) => ({
+        entity,
+        locationKey: 'hr-user-https://www.hrurl.com/',
+      })),
+    })
+
+      // TODO: get tyk data
+
+      
+      // const response = await this.reader.readUrl(
+      //   `https://frobs-${this.env}.example.com/data`,
+      // );
+      // const data = JSON.parse(await response.buffer()).toString();
+  
+      /** [5] */
+      // const entities: Entity[] = frobsToEntities(data);
+  
+      /** [6] */
+      // await this.connection.applyMutation({
+      //   type: 'full',
+      //   entities: entities.map(entity => ({
+      //     entity,
+      //     locationKey: `frobs-provider:${this.env}`,
+      //   })),
+      // });
+    }
+}
