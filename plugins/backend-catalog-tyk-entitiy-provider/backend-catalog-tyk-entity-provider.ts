@@ -16,14 +16,14 @@
 import {
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
+  ApiEntityV1alpha1
 } from '@backstage/catalog-model'
 import {
     EntityProvider,
     EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { Logger } from 'winston';
-import { UrlReader } from '@backstage/backend-common';
-import {kebabCase} from 'lodash'
+import { kebabCase } from 'lodash'
 
 type ApiDefinition = {
   id: string
@@ -35,28 +35,15 @@ export class TykEntityProvider
 {
   private readonly env: string;
   private readonly logger: Logger;
-  private readonly reader: UrlReader;
   private connection?: EntityProviderConnection;
-
-  // static fromConfig(config: Config, options: { logger: Logger }) {
-  //   const dashboardApiToken = config.getString('dashboardApi.token')
-  //   const dashboardApiUrl = config.getString('slack.token')
-  //   return new TykEntityProvider({
-  //     ...options,
-  //     logger,
-  //     env,
-  //   })
-  // }
 
   constructor(opts: {
     logger: Logger
     env: string
-    reader: UrlReader
   }) {
-    const { logger, env, reader } = opts
+    const { logger, env } = opts
     this.logger = logger
     this.env = env
-    this.reader = reader
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -83,27 +70,26 @@ export class TykEntityProvider
     return apiData;
   }
 
-  convertApisToResources(apis:ApiDefinition[]): any[]{
-    const apiResources: any[] = []
+  convertApisToResources(apis:ApiDefinition[]): ApiEntityV1alpha1[]{
+    const apiResources: ApiEntityV1alpha1[] = []
 
     for (const api of apis) {
       this.logger.info(`Processig ${api.name}`)
 
       apiResources.push({
-        kind: 'API',
         apiVersion: 'backstage.io/v1alpha1',
+        kind: 'API',
         metadata: {
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
+            'tyk-id': api.id,
           },
           name: kebabCase(api.name),
           title: api.name,
         },
         spec: {
           type: 'http',
-          id: api.id,
-          memberOf: [],
           system: 'tyk',
           owner: 'guests',
           lifecycle: 'experimental',

@@ -10,8 +10,7 @@ export default async function createPlugin(
   const builder = await CatalogBuilder.create(env);
   const tykEntityProvider = new TykEntityProvider({
     logger: env.logger,
-    env: 'test',
-    reader: env.reader
+    env: 'test'
   });
   builder.addEntityProvider(tykEntityProvider);
 
