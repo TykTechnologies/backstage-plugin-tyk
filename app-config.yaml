@@ -56,7 +56,7 @@ proxy:
       target: 'http://tyk-dashboard.localhost:3000/api'
       headers:
         # value of this header needs to be set to a valid Tyk Dashboard API key
-        Authorization: 'add697f9194c475d6a127f482bfc9b8b'
+        Authorization: ${TYKDASHBOARDAPIKEY}
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
@@ -116,4 +116,4 @@ catalog:
 tyk:
   dashboardApi:
     host: http://localhost:3000
-    token: aa509b94c71b4dae7013592b02b658b8
+    token: ${TYKDASHBOARDAPIKEY}
