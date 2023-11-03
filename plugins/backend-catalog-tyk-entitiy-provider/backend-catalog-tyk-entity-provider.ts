@@ -74,7 +74,7 @@ export class TykEntityProvider
     const apiResources: ApiEntityV1alpha1[] = []
 
     for (const api of apis) {
-      this.logger.info(`Processig ${api.name}`)
+      this.logger.info(`Processing ${api.name}`)
 
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
