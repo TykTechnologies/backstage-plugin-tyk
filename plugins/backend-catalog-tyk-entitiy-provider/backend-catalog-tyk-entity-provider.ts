@@ -23,6 +23,7 @@ import {
     EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { Logger } from 'winston';
+import { Config } from '@backstage/config';
 import { kebabCase } from 'lodash'
 
 type ApiDefinition = {
@@ -35,15 +36,23 @@ export class TykEntityProvider
 {
   private readonly env: string;
   private readonly logger: Logger;
+  private readonly dashboardApiHost: string;
+  private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
   constructor(opts: {
     logger: Logger
     env: string
+    config: Config
   }) {
-    const { logger, env } = opts
+    const { logger, env, config } = opts
     this.logger = logger
     this.env = env
+    this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
+    this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
+
+    this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
+    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0,4)} (first 4 characters)`)
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -55,7 +64,7 @@ export class TykEntityProvider
   }
 
   async getAllApis(): Promise<ApiDefinition[]>{
-    const response = await fetch('http://localhost:3000/api/apis', { headers: { Authorization: 'aa509b94c71b4dae7013592b02b658b8' } })
+    const response = await fetch(`${this.dashboardApiHost}/api/apis`, { headers: { Authorization: `${this.dashboardApiToken}` } })
     const data = await response.json()
     const apis = data.apis
     const apiData: ApiDefinition[] = []

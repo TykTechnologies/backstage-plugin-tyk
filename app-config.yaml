@@ -112,3 +112,8 @@ catalog:
     #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme-corp.yaml
     #   rules:
     #     - allow: [User, Group]
+
+tyk:
+  dashboardApi:
+    host: http://localhost:3000
+    token: aa509b94c71b4dae7013592b02b658b8
