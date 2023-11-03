@@ -30,28 +30,6 @@ type ApiDefinition = {
   name: string
 }
 
-interface ApiEntity {
-  kind: string
-  apiVersion: string
-  metadata: {
-    annotations: {
-      [ANNOTATION_LOCATION]: string;
-      [ANNOTATION_ORIGIN_LOCATION]: string;
-    };
-    name: string;
-    title: string;
-  }
-  spec: {
-    type: string;
-    id: string;
-    memberOf: never[];
-    lifecycle: string;
-    owner: string;
-    system: string;
-    definition: string;
-  }
-}
-
 export class TykEntityProvider
   implements EntityProvider
 {
@@ -105,13 +83,13 @@ export class TykEntityProvider
     return apiData;
   }
 
-  convertApisToResources(apis:ApiDefinition[]): ApiEntity[]{
-    const apiResources: ApiEntity[] = []
+  convertApisToResources(apis:ApiDefinition[]): any[]{
+    const apiResources: any[] = []
 
     for (const api of apis) {
-      this.logger.info(api.name)
+      this.logger.info(`Processig ${api.name}`)
 
-      const apiEntity: ApiEntity = {
+      apiResources.push({
         kind: 'API',
         apiVersion: 'backstage.io/v1alpha1',
         metadata: {
@@ -131,9 +109,7 @@ export class TykEntityProvider
           lifecycle: 'experimental',
           definition: 'openapi: "3.0.0"'
         },
-      }
-
-      apiResources.push(apiEntity)
+      })
     }
 
     return apiResources
@@ -147,7 +123,7 @@ export class TykEntityProvider
     }
 
     const apis = await this.getAllApis()
-    const apiResources: ApiEntity[] = this.convertApisToResources(apis)
+    const apiResources = this.convertApisToResources(apis)
 
     await this.connection.applyMutation({
       type: 'full',
