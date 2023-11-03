@@ -24,8 +24,8 @@ export default async function createPlugin(
     fn: async () => {
       await tykEntityProvider.run();
     },
-    frequency: { minutes: 1 },
-    timeout: { minutes: 10 },
+    frequency: { minutes: 2 },
+    timeout: { minutes: 1 },
   });
 
   return router;
