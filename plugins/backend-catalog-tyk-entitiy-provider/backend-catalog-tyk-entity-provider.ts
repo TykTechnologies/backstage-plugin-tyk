@@ -70,7 +70,7 @@ export class TykEntityProvider
     const apiData: ApiDefinition[] = []
 
     if (response.status != 200) {
-      this.logger.warn(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+      this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
     } else {
       if (apis == undefined) {
         this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
