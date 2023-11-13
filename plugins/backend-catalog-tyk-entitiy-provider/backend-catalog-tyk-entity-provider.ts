@@ -19,8 +19,8 @@ import {
   ApiEntityV1alpha1
 } from '@backstage/catalog-model'
 import {
-    EntityProvider,
-    EntityProviderConnection,
+  EntityProvider,
+  EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
@@ -32,8 +32,7 @@ type ApiDefinition = {
 }
 
 export class TykEntityProvider
-  implements EntityProvider
-{
+  implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
   private readonly dashboardApiHost: string;
@@ -52,39 +51,49 @@ export class TykEntityProvider
     this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
 
     this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
-    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0,4)} (first 4 characters)`)
+    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`)
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
-    this.connection=connection
+    this.connection = connection
   }
 
   getProviderName(): string {
     return `tyk-entity-provider-${this.env}`
   }
 
-  async getAllApis(): Promise<ApiDefinition[]>{
+  async getAllApis(): Promise<ApiDefinition[]> {
+    // this is an example, that just fetches the first page of APIs
     const response = await fetch(`${this.dashboardApiHost}/api/apis`, { headers: { Authorization: `${this.dashboardApiToken}` } })
     const data = await response.json()
     const apis = data.apis
     const apiData: ApiDefinition[] = []
 
-    apis.forEach((api: { api_definition: { api_id: any; name: any; }; }) => {
-      apiData.push({
-        id: api.api_definition.api_id,
-        name: api.api_definition.name
-      });
-    });
+    if (response.status != 200) {
+      this.logger.warn(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+    } else {
+      if (apis == undefined) {
+        this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
+      } else {
+        apis.forEach((api: { api_definition: { api_id: any; name: any; }; }) => {
+          apiData.push({
+            id: api.api_definition.api_id,
+            name: api.api_definition.name
+          });
+        });
+      }
+    }
 
     return apiData;
   }
 
-  convertApisToResources(apis:ApiDefinition[]): ApiEntityV1alpha1[]{
+  convertApisToResources(apis: ApiDefinition[]): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = []
 
     for (const api of apis) {
       this.logger.info(`Processing ${api.name}`)
 
+      // this is a simplistic API CRD, for purpose of demonstration
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
@@ -112,7 +121,7 @@ export class TykEntityProvider
 
   async run(): Promise<void> {
     this.logger.info("Running Tyk Entity Provider")
-    
+
     if (!this.connection) {
       throw new Error('Not initialized');
     }
@@ -126,6 +135,6 @@ export class TykEntityProvider
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
-    })  
+    })
   }
 }
