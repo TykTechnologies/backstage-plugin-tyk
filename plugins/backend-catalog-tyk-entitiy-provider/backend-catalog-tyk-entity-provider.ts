@@ -17,6 +17,10 @@ const APISchema = z.object({
   api_definition: z.object({
     api_id: z.string(),
     name: z.string(),
+    graphql: z.object({
+      enabled: z.boolean(),
+      schema: z.string(),
+    }).optional(),
   }),
   oas: z.any().optional(),
 });
@@ -76,11 +80,19 @@ export class TykEntityProvider implements EntityProvider {
     for (const api of apis) {
       this.logger.info(`Processing ${api.api_definition.name}`)
 
-      let definition: string = 'openapi: "3.0.0"';
-      // console.log(definition);
+      let spec = {
+        type: 'openapi',
+        system: 'tyk',
+        owner: 'guests',
+        lifecycle: 'experimental',
+        definition: 'openapi: "3.0.0"',
+      }
+
       if (typeof api.oas == "object") {
-        definition = yaml.dump(api.oas);
-        console.log(definition);
+        spec.definition = yaml.dump(api.oas);
+      } else if (api.api_definition.graphql?.enabled === true) {
+        spec.definition = api.api_definition.graphql?.schema;
+        spec.type = 'graphql';
       }
 
       apiResources.push({
@@ -95,13 +107,7 @@ export class TykEntityProvider implements EntityProvider {
           name: kebabCase(api.api_definition.name),
           title: api.api_definition.name,
         },
-        spec: {
-          type: 'http',
-          system: 'tyk',
-          owner: 'guests',
-          lifecycle: 'experimental',
-          definition: definition,
-        },
+        spec: spec,
       })
     }
 
