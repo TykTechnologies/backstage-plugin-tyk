@@ -1,89 +1,87 @@
-/*
- * Copyright 2020 The Backstage Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 import {
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
   ApiEntityV1alpha1
 } from '@backstage/catalog-model'
 import {
-    EntityProvider,
-    EntityProviderConnection,
+  EntityProvider,
+  EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Logger } from 'winston';
-import { Config } from '@backstage/config';
-import { kebabCase } from 'lodash'
+import {Logger} from 'winston';
+import {Config} from '@backstage/config';
+import {kebabCase} from 'lodash';
+import {z} from 'zod';
+import yaml from 'js-yaml';
 
-type ApiDefinition = {
-  id: string
-  name: string
-}
+const APISchema = z.object({
+  api_definition: z.object({
+    api_id: z.string(),
+    name: z.string(),
+  }),
+  oas: z.any().optional(),
+});
 
-export class TykEntityProvider
-  implements EntityProvider
-{
+const APIListResponseSchema = z.object({
+  apis: z.array(APISchema),
+});
+
+type APIListResponse = z.infer<typeof APIListResponseSchema>;
+type API = z.infer<typeof APISchema>;
+
+export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
   private readonly dashboardApiHost: string;
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
-  constructor(opts: {
-    logger: Logger
-    env: string
-    config: Config
-  }) {
-    const { logger, env, config } = opts
-    this.logger = logger
-    this.env = env
-    this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
+  constructor(opts: { logger: Logger; env: string; config: Config; }) {
+    const {logger, env, config} = opts;
+    this.logger = logger;
+    this.env = env;
+
     this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
+    console.log("foo")
+    this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
+    console.log("bar")
+
 
     this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
-    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0,4)} (first 4 characters)`)
+    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`)
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
-    this.connection=connection
+    this.connection = connection
   }
 
   getProviderName(): string {
     return `tyk-entity-provider-${this.env}`
   }
 
-  async getAllApis(): Promise<ApiDefinition[]>{
-    const response = await fetch(`${this.dashboardApiHost}/api/apis`, { headers: { Authorization: `${this.dashboardApiToken}` } })
-    const data = await response.json()
-    const apis = data.apis
-    const apiData: ApiDefinition[] = []
+  async getAllApis(): Promise<API[]> {
+    const response = await fetch(`${this.dashboardApiHost}/api/apis`,
+      {headers: {Authorization: `${this.dashboardApiToken}`}}
+    );
 
-    apis.forEach((api: { api_definition: { api_id: any; name: any; }; }) => {
-      apiData.push({
-        id: api.api_definition.api_id,
-        name: api.api_definition.name
-      });
-    });
+    const data: APIListResponse = await response.json()
 
-    return apiData;
+    APIListResponseSchema.parse(data)
+
+    return data.apis;
   }
 
-  convertApisToResources(apis:ApiDefinition[]): ApiEntityV1alpha1[]{
+  convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = []
 
     for (const api of apis) {
-      this.logger.info(`Processing ${api.name}`)
+      this.logger.info(`Processing ${api.api_definition.name}`)
+
+      let definition: string = 'openapi: "3.0.0"';
+      // console.log(definition);
+      if (typeof api.oas == "object") {
+        definition = yaml.dump(api.oas);
+        console.log(definition);
+      }
 
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
@@ -92,17 +90,17 @@ export class TykEntityProvider
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
-            'tyk-id': api.id,
+            'tyk-id': api.api_definition.api_id,
           },
-          name: kebabCase(api.name),
-          title: api.name,
+          name: kebabCase(api.api_definition.name),
+          title: api.api_definition.name,
         },
         spec: {
           type: 'http',
           system: 'tyk',
           owner: 'guests',
           lifecycle: 'experimental',
-          definition: 'openapi: "3.0.0"'
+          definition: definition,
         },
       })
     }
@@ -112,7 +110,7 @@ export class TykEntityProvider
 
   async run(): Promise<void> {
     this.logger.info("Running Tyk Entity Provider")
-    
+
     if (!this.connection) {
       throw new Error('Not initialized');
     }
@@ -126,6 +124,6 @@ export class TykEntityProvider
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
-    })  
+    })
   }
 }
