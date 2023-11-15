@@ -12,6 +12,7 @@ import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
 import {z} from 'zod';
 import yaml from 'js-yaml';
+import {IdentityApi} from "@backstage/plugin-auth-node";
 
 const APISchema = z.object({
   api_definition: z.object({
@@ -39,16 +40,13 @@ export class TykEntityProvider implements EntityProvider {
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
-  constructor(opts: { logger: Logger; env: string; config: Config; }) {
+  constructor(opts: { logger: Logger; env: string; config: Config; identity: IdentityApi}) {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
 
     this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
-    console.log("foo")
     this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
-    console.log("bar")
-
 
     this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
     this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`)
