@@ -10,6 +10,7 @@ import {
   SupportButton,
 } from '@backstage/core-components';
 import { APIListComponent } from '../APIListComponent';
+import { CreateApiComponent } from '../CreateApiComponent';
 
 export const TykPageComponent = () => (
   <Page themeId="tool">
@@ -18,9 +19,12 @@ export const TykPageComponent = () => (
       <HeaderLabel label="Lifecycle" value="Alpha" />
     </Header>
     <Content>
-      <Grid container spacing={3} direction="column">
-        <Grid item>
+      <Grid container spacing={2}>
+        <Grid item xs={9}>
           <APIListComponent />
+        </Grid>
+        <Grid item xs={3}>
+          <CreateApiComponent />
         </Grid>
       </Grid>
     </Content>

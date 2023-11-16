@@ -7,6 +7,7 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
+
 import {Logger} from 'winston';
 import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
@@ -61,14 +62,23 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async getAllApis(): Promise<API[]> {
-    const response = await fetch(`${this.dashboardApiHost}/api/apis`,
-      {headers: {Authorization: `${this.dashboardApiToken}`}}
-    );
-
+    // this is an example, that just fetches the first page of APIs
+    const response = await fetch(`${this.dashboardApiHost}/api/apis`, 
+      { headers: { Authorization: `${this.dashboardApiToken}` } }
+    )
+    
     const data: APIListResponse = await response.json()
-
-    APIListResponseSchema.parse(data)
-
+    
+    if (response.status != 200) {
+      this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+    } else {
+      if (data.apis == undefined) {
+        this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
+      } else {
+        APIListResponseSchema.parse(data)
+      }
+    }
+    
     return data.apis;
   }
 
@@ -93,6 +103,7 @@ export class TykEntityProvider implements EntityProvider {
         spec.type = 'graphql';
       }
 
+      // this is a simplistic API CRD, for purpose of demonstration
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
