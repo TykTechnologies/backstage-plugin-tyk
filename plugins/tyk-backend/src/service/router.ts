@@ -19,6 +19,15 @@ export async function createRouter(
     logger.info('PONG!');
     response.json({ status: 'ok' });
   });
+
+  router.post('/api', (req, res) => {
+    logger.info('Importing API Definition');
+    // to access body, requests must use correct Content-Type header i.e. application/json
+    logger.info('name:'+req.body.name);
+    
+    res.json({ status: 'ok' });
+  });
+
   router.use(errorHandler());
   return router;
 }
