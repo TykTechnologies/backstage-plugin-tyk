@@ -32,7 +32,7 @@ const APIListResponseSchema = z.object({
 });
 
 type APIListResponse = z.infer<typeof APIListResponseSchema>;
-type API = z.infer<typeof APISchema>;
+export type API = z.infer<typeof APISchema>;
 
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
@@ -41,7 +41,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
-  constructor(opts: { logger: Logger; env: string; config: Config; identity: IdentityApi}) {
+  constructor(opts: { logger: Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
@@ -139,6 +139,26 @@ export class TykEntityProvider implements EntityProvider {
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
+    })
+  }
+
+  async import(api: API): Promise<void> {
+    this.logger.info("Running Tyk Entity Provider")
+
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    // reuse existing functionality, which was designed to accept arrays of APIs
+    const apiResources = this.convertApisToResources([ api ])
+
+    await this.connection.applyMutation({
+      type: 'delta',
+      added: apiResources.map((entity) => ({
+        entity,
+        locationKey: `${this.getProviderName()}`,
+      })),
+      removed: []
     })
   }
 }
