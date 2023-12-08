@@ -123,8 +123,8 @@ export class TykEntityProvider implements EntityProvider {
     return apiResources
   }
 
-  async run(): Promise<void> {
-    this.logger.info("Pulling all APIs from Tyk Dashboard")
+  async importAllApis(): Promise<void> {
+    this.logger.info("Importing all APIs from Tyk Dashboard")
 
     if (!this.connection) {
       throw new Error('Not initialized');
@@ -142,7 +142,8 @@ export class TykEntityProvider implements EntityProvider {
     })
   }
 
-  async import(api: API): Promise<void> {
+  // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+  async importApi(api: API): Promise<void> {
     this.logger.info('Importing single API');
 
     if (!this.connection) {

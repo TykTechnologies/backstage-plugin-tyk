@@ -19,30 +19,39 @@ export default async function createPlugin(
   const { processingEngine, router } = await builder.build();
   await processingEngine.start();
 
-  // for importing individual APIs
-  router.post("/tyk/import/api", async (req, _res) => {
-/* to access body data, requests must use application/json Content-Type header, for example:
-
-curl --location 'localhost:7007/api/catalog/tyk/import/api' \
+  // for creating individual APIs based on posted data
+/* example:
+curl --location 'localhost:7007/api/catalog/tyk/api' \
 --header 'Content-Type: application/json' \
 --data '{
-  "name": "Test API",
+  "name": "Single Imported API",
   "id": "12345"
-}
-
+}'
 */
-    tykEntityProvider.import({ 
+  router.post("/tyk/api", async (req, res) => {
+    // to access body data, requests must use application/json Content-Type header
+    tykEntityProvider.importApi({ 
       api_definition: {
         api_id: req.body.id,
         name: req.body.name
       }
     });
+    res.status(200).end();
+  })
+
+  // for importing all APIs from the Tyk Dashboard
+/* example:
+curl --location 'localhost:7007/api/catalog/tyk/api/import-all'
+*/
+  router.get("/tyk/api/import-all", async (_req, res) => {
+    await tykEntityProvider.importAllApis();
+    res.status(200).end();
   })
 
   await env.scheduler.scheduleTask({
     id: 'run_tyk_entity_provider_refresh',
     fn: async () => {
-      await tykEntityProvider.run();
+      await tykEntityProvider.importAllApis();
     },
     frequency: { minutes: 2 },
     timeout: { minutes: 1 },
