@@ -124,7 +124,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async run(): Promise<void> {
-    this.logger.info("Running Tyk Entity Provider")
+    this.logger.info("Pulling all APIs from Tyk Dashboard")
 
     if (!this.connection) {
       throw new Error('Not initialized');
@@ -143,13 +143,13 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async import(api: API): Promise<void> {
-    this.logger.info("Running Tyk Entity Provider")
+    this.logger.info('Importing single API');
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
-    // reuse existing functionality, which was designed to accept arrays of APIs
+    // reuse existing functionality, which was designed to accept an API arrays of APIs
     const apiResources = this.convertApisToResources([ api ])
 
     await this.connection.applyMutation({

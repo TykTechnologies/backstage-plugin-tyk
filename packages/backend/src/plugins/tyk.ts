@@ -25,7 +25,6 @@ export default async function createPlugin(
   // The env contains a lot of goodies, but our router currently only
   // needs a logger
   return await createRouter({
-    env: env,
-    ep: tykEntityProvider
+    env: env
   });
 }
