@@ -27,12 +27,18 @@ const APISchema = z.object({
   oas: z.any().optional(),
 });
 
+const ApiEventSchema = z.object({
+  event: z.string(),
+  data: APISchema
+});
+
 const APIListResponseSchema = z.object({
   apis: z.array(APISchema),
 });
 
 type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
+export type ApiEvent = z.infer<typeof ApiEventSchema>;
 
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;

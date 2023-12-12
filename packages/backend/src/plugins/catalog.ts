@@ -3,6 +3,7 @@ import { ScaffolderEntitiesProcessor } from '@backstage/plugin-scaffolder-backen
 import { Router } from 'express';
 import { PluginEnvironment } from '../types';
 import { TykEntityProvider } from '../../../../plugins/backend-catalog-tyk-entitiy-provider/backend-catalog-tyk-entity-provider';
+import { ApiEvent } from '../../../../plugins/backend-catalog-tyk-entitiy-provider/backend-catalog-tyk-entity-provider';
 
 export default async function createPlugin(
   env: PluginEnvironment,
@@ -18,6 +19,46 @@ export default async function createPlugin(
   builder.addProcessor(new ScaffolderEntitiesProcessor());
   const { processingEngine, router } = await builder.build();
   await processingEngine.start();
+
+  // imports single APIs based on a Tyk webhook API event
+  // designed to work without a 'Content-Type' header, as the Tyk webhook doesn't contain one
+/* example:
+curl --location 'localhost:7007/api/catalog/tyk/api/hook' \
+--data '{
+  "event":"api_event.add",
+  "data": {
+    "api_definition": {
+      "name": "Webhook API",
+      "id": "12345"
+    }
+  }
+}'
+*/
+  router.post("/tyk/api/hook", async(req, res) => {
+    var data='';
+    req.setEncoding('utf8');
+
+    req.on('data', function(chunk) { 
+      // manually build data from chunks
+      data += chunk
+    });
+    req.on('end', function() {
+      // parse data into object
+      let apiEvent = JSON.parse(data) as ApiEvent
+      
+      switch (apiEvent.event) {
+        case "api_event.add":
+          tykEntityProvider.importApi(
+            apiEvent.data
+          );
+          res.status(200).end();
+          break;
+        default:
+          res.status(400).json({error: "unknown api event type"}).end();
+          break;
+      }
+    });
+  });
 
   // for creating individual APIs based on posted data
 /* example:
@@ -37,7 +78,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api' \
       }
     });
     res.status(200).end();
-  })
+  });
 
   // for importing all APIs from the Tyk Dashboard
 /* example:
