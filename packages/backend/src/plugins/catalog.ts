@@ -29,7 +29,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api/hook' \
   "data": {
     "api_definition": {
       "name": "Webhook API",
-      "id": "12345"
+      "api_id": "12345"
     }
   }
 }'
@@ -66,7 +66,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api' \
 --header 'Content-Type: application/json' \
 --data '{
   "name": "Single Imported API",
-  "id": "12345"
+  "api_id": "12345"
 }'
 */
   router.post("/tyk/api", async (req, res) => {
