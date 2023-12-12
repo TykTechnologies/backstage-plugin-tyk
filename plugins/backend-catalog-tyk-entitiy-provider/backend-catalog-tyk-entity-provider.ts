@@ -110,6 +110,9 @@ export class TykEntityProvider implements EntityProvider {
       }
 
       // this is a simplistic API CRD, for purpose of demonstration
+      // note: 
+      //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
+      //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
@@ -117,9 +120,9 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
-            'tyk-id': api.api_definition.api_id,
+            'tyk-api-id': api.api_definition.api_id,
           },
-          name: kebabCase(api.api_definition.name),
+          name: api.api_definition.api_id,
           title: api.api_definition.name,
         },
         spec: spec,
