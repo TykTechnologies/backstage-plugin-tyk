@@ -24,7 +24,7 @@ import {
   isComponentType,
   isKind,
   hasCatalogProcessingErrors,
-  isOrphan,
+  isOrphan, EntityLabelsCard,
 } from '@backstage/plugin-catalog';
 import {
   isGithubActionsAvailable,
@@ -242,6 +242,9 @@ const tykAPIPage = (
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
         </Grid>
+        <Grid item md={4} xs={12}>
+          <EntityLabelsCard title="Tyk" />
+        </Grid>
         <Grid container item md={12}>
           <Grid item md={6}>
             <EntityProvidingComponentsCard />
@@ -402,7 +405,8 @@ const domainPage = (
 export const entityPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isKind('component')} children={componentPage} />
-    <EntitySwitch.Case if={isKind('api')} children={apiPage} />
+    <EntitySwitch.Case if={isKind('api')} children={tykAPIPage} />
+    {/* <EntitySwitch.Case if={isKind('tykAPI')} children={tykAPIPage} />*/}
     <EntitySwitch.Case if={isKind('group')} children={groupPage} />
     <EntitySwitch.Case if={isKind('user')} children={userPage} />
     <EntitySwitch.Case if={isKind('system')} children={systemPage} />

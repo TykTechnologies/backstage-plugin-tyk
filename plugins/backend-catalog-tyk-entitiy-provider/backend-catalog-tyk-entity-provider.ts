@@ -13,12 +13,18 @@ import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
 import {z} from 'zod';
 import yaml from 'js-yaml';
-import {IdentityApi} from "@backstage/plugin-auth-node";
 
 const APISchema = z.object({
   api_definition: z.object({
     api_id: z.string(),
     name: z.string(),
+    active: z.boolean(),
+    use_keyless: z.boolean().optional(),
+    use_oauth2: z.boolean().optional(),
+    use_standard_auth: z.boolean().optional(),
+    use_mutual_tls_auth: z.boolean().optional(),
+    use_basic_auth: z.boolean().optional(),
+    use_jwt: z.boolean().optional(),
     graphql: z.object({
       enabled: z.boolean(),
       schema: z.string(),
@@ -41,7 +47,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
-  constructor(opts: { logger: Logger; env: string; config: Config; identity: IdentityApi}) {
+  constructor(opts: { logger: winston.Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
@@ -66,8 +72,9 @@ export class TykEntityProvider implements EntityProvider {
     const response = await fetch(`${this.dashboardApiHost}/api/apis`, 
       { headers: { Authorization: `${this.dashboardApiToken}` } }
     )
-    
-    const data: APIListResponse = await response.json()
+    let jsResponse = await response.json();
+
+    const data: APIListResponse = jsResponse;
     
     if (response.status != 200) {
       this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
@@ -105,6 +112,29 @@ export class TykEntityProvider implements EntityProvider {
         spec.type = 'graphql';
       }
 
+      let authMechamism = (api: API): string => {
+        if (api.api_definition.use_keyless === true) {
+          return 'keyless';
+        }
+
+        if (api.api_definition.use_jwt === true) {
+          return 'jwt';
+        }
+
+        if (api.api_definition.use_oauth2 === true) {
+          return 'oauth2';
+        }
+
+        if (api.api_definition.use_basic_auth === true) {
+          return 'basic';
+        }
+
+        if (api.api_definition.use_standard_auth === true) {
+          return 'auth-token';
+        }
+        return 'unknown';
+      }
+
       // this is a simplistic API CRD, for purpose of demonstration
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
@@ -127,6 +157,12 @@ export class TykEntityProvider implements EntityProvider {
               icon: "chart-bar"
             },
           ],
+          labels: {
+            'active': api.api_definition.active.toString(),
+            'api_id': api.api_definition.api_id,
+            'name': api.api_definition.name,
+            'authentication': authMechamism(api),
+          },
           name: kebabCase(api.api_definition.name),
           title: api.api_definition.name,
         },
@@ -144,8 +180,8 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    const apis = await this.getAllApis()
-    const apiResources = this.convertApisToResources(apis)
+    const apis: API[] = await this.getAllApis();
+    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
 
     await this.connection.applyMutation({
       type: 'full',
