@@ -7,7 +7,7 @@ import { TykEntityProvider } from '../../../../plugins/backend-catalog-tyk-entit
 export default async function createPlugin(
   env: PluginEnvironment,
 ): Promise<Router> {
-  const builder = await CatalogBuilder.create(env);
+  const builder = CatalogBuilder.create(env);
   const tykEntityProvider = new TykEntityProvider({
     logger: env.logger,
     env: 'test',
@@ -24,7 +24,7 @@ export default async function createPlugin(
     fn: async () => {
       await tykEntityProvider.run();
     },
-    frequency: { minutes: 2 },
+    frequency: { minutes: 1 },
     timeout: { minutes: 1 },
   });
 

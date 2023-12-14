@@ -24,7 +24,7 @@ import {
   isComponentType,
   isKind,
   hasCatalogProcessingErrors,
-  isOrphan,
+  isOrphan, EntityLabelsCard,
 } from '@backstage/plugin-catalog';
 import {
   isGithubActionsAvailable,
@@ -228,6 +228,44 @@ const componentPage = (
   </EntitySwitch>
 );
 
+const tykAPIPage = (
+  <EntityLayout>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3}>
+        {entityWarningContent}
+        <Grid item md={6}>
+          <EntityAboutCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard variant="gridItem" height={400} />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <EntityLinksCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <EntityLabelsCard title="Tyk" />
+        </Grid>
+        <Grid container item md={12}>
+          <Grid item md={6}>
+            <EntityProvidingComponentsCard />
+          </Grid>
+          <Grid item md={6}>
+            <EntityConsumingComponentsCard />
+          </Grid>
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/definition" title="Definition">
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <EntityApiDefinitionCard />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
 const apiPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
@@ -367,7 +405,8 @@ const domainPage = (
 export const entityPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isKind('component')} children={componentPage} />
-    <EntitySwitch.Case if={isKind('api')} children={apiPage} />
+    <EntitySwitch.Case if={isKind('api')} children={tykAPIPage} />
+    {/* <EntitySwitch.Case if={isKind('tykAPI')} children={tykAPIPage} />*/}
     <EntitySwitch.Case if={isKind('group')} children={groupPage} />
     <EntitySwitch.Case if={isKind('user')} children={userPage} />
     <EntitySwitch.Case if={isKind('system')} children={systemPage} />
