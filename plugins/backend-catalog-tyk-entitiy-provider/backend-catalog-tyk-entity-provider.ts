@@ -13,12 +13,18 @@ import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
 import {z} from 'zod';
 import yaml from 'js-yaml';
-import {IdentityApi} from "@backstage/plugin-auth-node";
 
 const APISchema = z.object({
   api_definition: z.object({
     api_id: z.string(),
     name: z.string(),
+    active: z.boolean(),
+    use_keyless: z.boolean().optional(),
+    use_oauth2: z.boolean().optional(),
+    use_standard_auth: z.boolean().optional(),
+    use_mutual_tls_auth: z.boolean().optional(),
+    use_basic_auth: z.boolean().optional(),
+    use_jwt: z.boolean().optional(),
     graphql: z.object({
       enabled: z.boolean(),
       schema: z.string(),
@@ -72,8 +78,9 @@ export class TykEntityProvider implements EntityProvider {
     const response = await fetch(`${this.dashboardApiHost}/api/apis`, 
       { headers: { Authorization: `${this.dashboardApiToken}` } }
     )
-    
-    const data: APIListResponse = await response.json()
+    let jsResponse = await response.json();
+
+    const data: APIListResponse = jsResponse;
     
     if (response.status != 200) {
       switch (response.status) {
@@ -109,11 +116,36 @@ export class TykEntityProvider implements EntityProvider {
         definition: 'openapi: "3.0.0"',
       }
 
+      let linkPathPart = "designer";
       if (typeof api.oas == "object") {
         spec.definition = yaml.dump(api.oas);
+        linkPathPart = "oas";
       } else if (api.api_definition.graphql?.enabled === true) {
         spec.definition = api.api_definition.graphql?.schema;
         spec.type = 'graphql';
+      }
+
+      let authMechamism = (api: API): string => {
+        if (api.api_definition.use_keyless === true) {
+          return 'keyless';
+        }
+
+        if (api.api_definition.use_jwt === true) {
+          return 'jwt';
+        }
+
+        if (api.api_definition.use_oauth2 === true) {
+          return 'oauth2';
+        }
+
+        if (api.api_definition.use_basic_auth === true) {
+          return 'basic';
+        }
+
+        if (api.api_definition.use_standard_auth === true) {
+          return 'auth-token';
+        }
+        return 'unknown';
       }
 
       // this is a simplistic API CRD, for purpose of demonstration
@@ -128,6 +160,24 @@ export class TykEntityProvider implements EntityProvider {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
             'tyk-api-id': api.api_definition.api_id,
+          },
+          links: [
+            {
+              url: `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`,
+              title: "Design Tyk API",
+              icon: "dashboard"
+            },
+            {
+              url: `${this.dashboardApiHost}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
+              title: "Tyk Analytics for API",
+              icon: "chart-bar"
+            },
+          ],
+          labels: {
+            'active': api.api_definition.active.toString(),
+            'api_id': api.api_definition.api_id,
+            'name': api.api_definition.name,
+            'authentication': authMechamism(api),
           },
           name: api.api_definition.api_id,
           title: api.api_definition.name,
@@ -146,13 +196,13 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    const apis = await this.getAllApis()
+    const apis: API[] = await this.getAllApis();
 
     if (apis == null || apis.length == 0) {
       this.logger.warn("No APIs to process, aborting import")
       return
     }
-    const apiResources = this.convertApisToResources(apis)
+    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
 
     await this.connection.applyMutation({
       type: 'full',

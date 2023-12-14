@@ -8,7 +8,7 @@ import { ApiEvent } from '../../../../plugins/backend-catalog-tyk-entitiy-provid
 export default async function createPlugin(
   env: PluginEnvironment,
 ): Promise<Router> {
-  const builder = await CatalogBuilder.create(env);
+  const builder = CatalogBuilder.create(env);
   const tykEntityProvider = new TykEntityProvider({
     logger: env.logger,
     env: 'test',
@@ -94,7 +94,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api/import-all'
     fn: async () => {
       await tykEntityProvider.importAllApis();
     },
-    frequency: { minutes: 2 },
+    frequency: { minutes: 1 },
     timeout: { minutes: 1 },
   });
 
