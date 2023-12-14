@@ -176,7 +176,7 @@ export class TykEntityProvider implements EntityProvider {
           labels: {
             'active': api.api_definition.active.toString(),
             'api_id': api.api_definition.api_id,
-            'name': api.api_definition.name,
+            'name': kebabCase(api.api_definition.name),
             'authentication': authMechamism(api),
           },
           name: api.api_definition.api_id,
