@@ -142,7 +142,7 @@ export class TykEntityProvider implements EntityProvider {
     const apis = await this.getAllApis()
 
     if (apis == null || apis.length == 0) {
-      this.logger.warn("No APIs found, aborting import")
+      this.logger.warn("No APIs to process, aborting import")
       return
     }
     const apiResources = this.convertApisToResources(apis)
