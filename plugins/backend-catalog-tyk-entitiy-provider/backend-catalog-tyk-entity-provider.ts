@@ -76,7 +76,14 @@ export class TykEntityProvider implements EntityProvider {
     const data: APIListResponse = await response.json()
     
     if (response.status != 200) {
-      this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+      switch (response.status) {
+        case 401:
+          this.logger.error(`Authorisation failed with Tyk Dashboard ${this.dashboardApiHost} - check that 'tyk.dashboardApi.token' app config setting is correct`)
+          break;
+        default:
+          this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+          break;
+      }
     } else {
       if (data.apis == undefined) {
         this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
