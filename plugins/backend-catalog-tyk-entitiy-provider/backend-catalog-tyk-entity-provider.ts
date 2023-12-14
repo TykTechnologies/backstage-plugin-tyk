@@ -159,7 +159,7 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    // reuse existing functionality, which was designed to accept an API arrays of APIs
+    // reuse existing functionality, which was designed to accept an array of APIs
     const apiResources = this.convertApisToResources([ api ])
 
     await this.connection.applyMutation({
