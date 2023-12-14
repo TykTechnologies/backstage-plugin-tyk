@@ -113,6 +113,18 @@ export class TykEntityProvider implements EntityProvider {
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
             'tyk-id': api.api_definition.api_id,
           },
+          links: [
+            {
+              url: `${this.dashboardApiHost}/apis/designer/${api.api_definition.api_id}`,
+              title: "Design Tyk API",
+              icon: "dashboard"
+            },
+            {
+              url: `${this.dashboardApiHost}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
+              title: "Tyk Analytics for API",
+              icon: "chart-bar"
+            },
+          ],
           name: kebabCase(api.api_definition.name),
           title: api.api_definition.name,
         },
