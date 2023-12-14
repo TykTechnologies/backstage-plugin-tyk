@@ -96,8 +96,10 @@ export class TykEntityProvider implements EntityProvider {
         definition: 'openapi: "3.0.0"',
       }
 
+      let linkPathPart = "designer";
       if (typeof api.oas == "object") {
         spec.definition = yaml.dump(api.oas);
+        linkPathPart = "oas";
       } else if (api.api_definition.graphql?.enabled === true) {
         spec.definition = api.api_definition.graphql?.schema;
         spec.type = 'graphql';
@@ -115,7 +117,7 @@ export class TykEntityProvider implements EntityProvider {
           },
           links: [
             {
-              url: `${this.dashboardApiHost}/apis/designer/${api.api_definition.api_id}`,
+              url: `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`,
               title: "Design Tyk API",
               icon: "dashboard"
             },
