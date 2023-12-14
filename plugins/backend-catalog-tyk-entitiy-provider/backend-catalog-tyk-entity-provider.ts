@@ -33,12 +33,18 @@ const APISchema = z.object({
   oas: z.any().optional(),
 });
 
+const ApiEventSchema = z.object({
+  event: z.string(),
+  data: APISchema
+});
+
 const APIListResponseSchema = z.object({
   apis: z.array(APISchema),
 });
 
 type APIListResponse = z.infer<typeof APIListResponseSchema>;
-type API = z.infer<typeof APISchema>;
+export type API = z.infer<typeof APISchema>;
+export type ApiEvent = z.infer<typeof ApiEventSchema>;
 
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
@@ -47,7 +53,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
 
-  constructor(opts: { logger: winston.Logger; env: string; config: Config }) {
+  constructor(opts: { logger: Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
@@ -77,7 +83,14 @@ export class TykEntityProvider implements EntityProvider {
     const data: APIListResponse = jsResponse;
     
     if (response.status != 200) {
-      this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+      switch (response.status) {
+        case 401:
+          this.logger.error(`Authorisation failed with Tyk Dashboard ${this.dashboardApiHost} - check that 'tyk.dashboardApi.token' app config setting is correct`)
+          break;
+        default:
+          this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+          break;
+      }
     } else {
       if (data.apis == undefined) {
         this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
@@ -136,6 +149,9 @@ export class TykEntityProvider implements EntityProvider {
       }
 
       // this is a simplistic API CRD, for purpose of demonstration
+      // note: 
+      //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
+      //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
       apiResources.push({
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
@@ -143,7 +159,7 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
-            'tyk-id': api.api_definition.api_id,
+            'tyk-api-id': api.api_definition.api_id,
           },
           links: [
             {
@@ -160,10 +176,10 @@ export class TykEntityProvider implements EntityProvider {
           labels: {
             'active': api.api_definition.active.toString(),
             'api_id': api.api_definition.api_id,
-            'name': api.api_definition.name,
+            'name': kebabCase(api.api_definition.name),
             'authentication': authMechamism(api),
           },
-          name: kebabCase(api.api_definition.name),
+          name: api.api_definition.api_id,
           title: api.api_definition.name,
         },
         spec: spec,
@@ -173,14 +189,19 @@ export class TykEntityProvider implements EntityProvider {
     return apiResources
   }
 
-  async run(): Promise<void> {
-    this.logger.info("Running Tyk Entity Provider")
+  async importAllApis(): Promise<void> {
+    this.logger.info("Importing all APIs from Tyk Dashboard")
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
     const apis: API[] = await this.getAllApis();
+
+    if (apis == null || apis.length == 0) {
+      this.logger.warn("No APIs to process, aborting import")
+      return
+    }
     const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
 
     await this.connection.applyMutation({
@@ -189,6 +210,27 @@ export class TykEntityProvider implements EntityProvider {
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
+    })
+  }
+
+  // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+  async importApi(api: API): Promise<void> {
+    this.logger.info('Importing single API');
+
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    // reuse existing functionality, which was designed to accept an array of APIs
+    const apiResources = this.convertApisToResources([ api ])
+
+    await this.connection.applyMutation({
+      type: 'delta',
+      added: apiResources.map((entity) => ({
+        entity,
+        locationKey: `${this.getProviderName()}`,
+      })),
+      removed: []
     })
   }
 }
