@@ -1,0 +1,54 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-template
+kind: Template
+metadata:
+  name: tyk-api-definition-template
+  title: Tyk API Definition
+  description: Creates a Tyk API Defintion
+spec:
+  owner: user:guest
+  type: api
+
+  # These parameters are used to generate the input form in the frontend, and are
+  # used to gather input data for the execution of the template.
+  parameters:
+    - title: Core Settings
+      required:
+        - name
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Display name
+          ui:autofocus: true
+          ui:options:
+            rows: 1
+        listenPath:
+          title: Listen Path
+          type: string
+          description: Path on which API can be accessed
+        targetUrl:
+          title: Target URL
+          type: string
+          description: Upstream target URL
+
+  # These steps are executed in the scaffolder backend, using data that we gathered
+  # via the parameters above.
+  steps:
+    # Custom action to create APIs in the Tyk Dashboard
+    - id: push-to-tyk-dashboard
+      name: Push to Tyk Dashboard
+      action: tyk:api:create
+      input:
+        name: ${{ parameters.name }}
+        listenPath: ${{ parameters.listenPath }}
+        targetUrl: ${{ parameters.targetUrl }}
+
+  # Outputs are displayed to the user after a successful execution of the template.
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.name }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}

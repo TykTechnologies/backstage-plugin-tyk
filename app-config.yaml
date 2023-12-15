@@ -103,6 +103,13 @@ catalog:
     - type: file
       target: ../../tyk-catalog.yaml
 
+    # Tyk API Definition software template
+    - type: file
+      target: tyk-api-definition-template.yaml
+      rules:
+        - allow: [Template]
+
+
     ## Uncomment these lines to add more example data
     # - type: url
     #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
