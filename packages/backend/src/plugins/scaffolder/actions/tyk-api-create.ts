@@ -48,7 +48,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
           logger.error('Error adding API to Tyk:' + data);
           ctx.logger.error('Error adding API to Tyk');
         } else {
-          logger.error('API added to Tyk');
+          logger.info('API added to Tyk');
           ctx.logger.info('API added to Tyk');
         }
       } catch (error) {
