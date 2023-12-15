@@ -23,7 +23,7 @@ export default async function createPlugin(
     reader: env.reader,
   });
 
-  const actions = [...builtInActions, createTykApiAction()];
+  const actions = [...builtInActions, createTykApiAction(env.config)];
 
   return await createRouter({
     actions,
