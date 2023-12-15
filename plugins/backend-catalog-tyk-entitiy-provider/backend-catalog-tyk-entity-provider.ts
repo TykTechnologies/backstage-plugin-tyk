@@ -1,283 +1,227 @@
 import {
-  ANNOTATION_EDIT_URL,
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
-  ANNOTATION_SOURCE_LOCATION,
-  ANNOTATION_VIEW_URL,
-  ApiEntityV1alpha1
+  ApiEntityV1alpha1,
+  ComponentEntityV1alpha1,
 } from '@backstage/catalog-model'
-import {EntityProvider, EntityProviderConnection,} from '@backstage/plugin-catalog-node';
+import {
+  EntityProvider,
+  EntityProviderConnection,
+} from '@backstage/plugin-catalog-node';
+
 import {Logger} from 'winston';
 import {Config} from '@backstage/config';
-import { Router } from 'express';
-import { PluginTaskScheduler } from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, TykConfig} from "./schemas/schemas";
-import {DashboardClient} from "./schemas/client/client";
+import {SystemNode} from "./model/nodes";
+import {DashboardClient} from "./client/dashboard";
+import {API} from "./model/apis";
+
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
+  private readonly dashboardApiHost: string;
+  private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
-  private dashboardClients: DashboardClient[];
-  private readonly tykConfig: TykConfig;
-  private readonly defaultSchedulerFrequency = 5
+  private readonly dashboardClient: DashboardClient;
 
-  constructor(props: { logger: Logger; env: string; config: Config }) {
-    this.logger = props.logger;
-    this.env = props.env;
-    this.tykConfig = props.config.get("tyk")
-    this.dashboardClients = this.tykConfig.dashboards.map((dashboardConfig: TykDashboardConfig) => {
-      this.logger.debug(`Loading Tyk Dashboard config - Name:${dashboardConfig.name}, Host:${dashboardConfig.host}, Token:${dashboardConfig.token.slice(0, 4)} (first 4 chars)`);
-      return new DashboardClient({log: props.logger, cfg: dashboardConfig});
-    })
+  constructor(opts: { logger: Logger; env: string; config: Config }) {
+    const {logger, env, config} = opts;
+    this.logger = logger;
+    this.env = env;
+
+    this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
+    this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
+
+    this.dashboardClient = new DashboardClient({
+      logger: this.logger,
+      dashboardAPIToken: this.dashboardApiToken,
+      dashboardAPIHost: this.dashboardApiHost,
+    });
+
+    this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
+    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`)
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
-    this.connection = connection;
-  }
-
-  async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
-    if (!this.tykConfig.router.enabled && !this.tykConfig.scheduler.enabled) {
-      this.logger.warn("Tyk entity provider has no methods enabled for data collection - no data will be imported");
-      return;
-    }
-
-    if (this.tykConfig.router.enabled) {
-      this.logger.info("Registering Tyk routes");
-      // for importing all APIs from the Tyk Dashboard, for both GET and POST
-      // the POST request is to support webhook calls from Tyk Dashboard
-      // these routes are accessible via the catalog api path /api/catalog/tyk/sync
-      router.get("/tyk/sync", async (_req, res) => {
-        await this.importAllApis();
-        res.status(200).end();
-      });
-      router.post("/tyk/sync", async (_req, res) => {
-        await this.importAllApis();
-        res.status(200).end();
-      });
-
-      // if the scheduler is not enabled, then perform an initial sync to populate data - otherwise there will be no data until an endpoint is called
-      if (!this.tykConfig.scheduler.enabled) {
-        this.importAllApis();
-      }
-    }
-
-    if (this.tykConfig.scheduler.enabled) {
-      this.logger.info("Scheduling Tyk task");
-      
-      let frequency = this.tykConfig.scheduler.frequency;
-      if (frequency === undefined) {
-        this.logger.info(`Tyk scheduler frequency not configured, using default value of ${this.defaultSchedulerFrequency}`);
-        frequency = this.defaultSchedulerFrequency;
-      }
-      
-      await scheduler.scheduleTask({
-        id: 'run_tyk_entity_provider_refresh',
-        fn: async () => {
-          await this.importAllApis();
-        },
-        frequency: { minutes: frequency },
-        timeout: { minutes: 1 },
-      });        
-    }
+    this.connection = connection
   }
 
   getProviderName(): string {
-    return `tyk-entity-provider-${this.env}`;
+    return `tyk-entity-provider-${this.env}`
   }
 
-  convertApiToResource(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
-    let resourceTitle = api.api_definition.name;
-    let resourceTags: string[] = [];
-    const tykCategoryPrefix = '#';
-
-    if (api.api_definition.name.includes(tykCategoryPrefix)) {
-      this.logger.debug(`Performing category extraction for Tyk API "${api.api_definition.name}"`);
-      api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
-        switch (index) {
-          case 0:
-            resourceTitle = value.trim();
-          break;
-          default:
-            resourceTags.push(value.trim());
-            break;
-        }
-      });
-    }
-
-    this.logger.debug(`Generating Tyk API resource for "${resourceTitle}"`);
-
-    // if there is no defaultOwner and the api definition config_data does not provide an owner,
-    // then we need to throw an error in the logs and skip this particular API definition
-    const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
-    if (owner === "") {
-      this.logger.error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
-      throw new Error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
-    }
-    const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
-    if (lifecycle === "") {
-      this.logger.error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
-      throw new Error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
-    }
-
-    // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
-    // this is to avoid collisions between identical APIs in different Tyk dashboards
-    const resourceName: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
-    let linkPathPart: string = "designer";
-    const apiEditUrl: string = `${config.host}/apis/${linkPathPart}/${api.api_definition.api_id}`;
-
-    let authMechamism = (api: API): string => {
-      if (api.api_definition.use_keyless === true) {
-        return 'keyless';
-      }
-
-      if (api.api_definition.use_jwt === true) {
-        return 'jwt';
-      }
-
-      if (api.api_definition.use_oauth2 === true) {
-        return 'oauth2';
-      }
-
-      if (api.api_definition.use_basic_auth === true) {
-        return 'basic';
-      }
-
-      if (api.api_definition.use_standard_auth === true) {
-        return 'auth-token';
-      }
-      return 'unknown';
-    }
-
-    // this is a simplistic API CRD, for purpose of demonstration
-    // note:
-    //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
-    //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
-    let apiResource: ApiEntityV1alpha1 = {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'API',
-      metadata: {
-        annotations: {
-          [ANNOTATION_LOCATION]: `url:${config.host}`,
-          [ANNOTATION_ORIGIN_LOCATION]: `url:${config.host}`,
-          [ANNOTATION_EDIT_URL]: `${apiEditUrl}`,
-          [ANNOTATION_VIEW_URL]: `${apiEditUrl}`,
-          [ANNOTATION_SOURCE_LOCATION]: `${apiEditUrl}`,
-        },
-        links: [
-          {
-            url: apiEditUrl,
-            title: "Design Tyk API",
-            icon: "dashboard"
-          },
-          {
-            url: `${config.host}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
-            title: "Tyk Analytics for API",
-            icon: "chart-bar"
-          },
-        ],
-        labels: {
-          'tyk.io/active': api.api_definition.active.toString(),
-          'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(resourceTitle),
-          'tyk.io/authentication': authMechamism(api),
-        },
-        tags: this.tykConfig.importCategoriesAsTags ? resourceTags : [],
-        name: resourceName,
-        title: resourceTitle,
-      },
-      spec: {
-        type: 'openapi',
-        system: api.api_definition.config_data?.backstage?.system ?? config.defaults?.system,
-        owner: api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || ""),
-        lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || ""),
-        definition: 'openapi: "3.0.0"',
-      },
-    };
-
-    if (typeof api.oas == "object") {
-      apiResource.spec.definition = yaml.dump(api.oas);
-      linkPathPart = "oas";
-    } else if (api.api_definition.graphql?.enabled === true) {
-      apiResource.spec.definition = api.api_definition.graphql?.schema;
-      apiResource.spec.type = 'graphql';
-    }
-
-    // add custom labels, if any exist
-    if (api.api_definition.config_data?.backstage?.labels) {
-      this.logger.debug(`${resourceTitle} contains Backstage label data`);
-      for (const label of api.api_definition.config_data?.backstage?.labels!) {
-        // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
-        // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
-        apiResource.metadata.labels!["tyk.io/" + label.key] = label.value;
-      }
-    }
-
-    // add ownership data as labels, if it exists
-    // a few issues here:
-    //   1 - the data is stored as guids in the apidef, so would need to perform lookup to get name of user/group
-    //   2 - backstage labels are limited to 64 characters, so there is potential to exceed that amount, and if that happens then the entity will fail validation and won't be imported
-    //   3 - backstage labels have a limited character set, so we have to use a dot as separator
-    if (api.user_owners && api.user_owners.length > 0) {
-      apiResource.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
-    }
-    if (api.user_group_owners && api.user_group_owners.length > 0) {
-      apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
-    }
-
-    return apiResource;
-  }
-
-  async importAllApis(): Promise<void> {
-    this.logger.info('Importing all APIs from Tyk');
+  async importGatewayNodes(): Promise<void> {
+    this.logger.info("Importing connected gateways from Tyk Dashboard")
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
-    let allAPIs = this.dashboardClients.map((client: DashboardClient) => client.getApiList());
-    let promiseResults = await Promise.allSettled(allAPIs);
 
-    let allAPIResources: ApiEntityV1alpha1[] = promiseResults.map((promiseResult: PromiseSettledResult<API[]>, index: number) => {
-      if (promiseResult.status === "fulfilled") {
+    const systemNodes: SystemNode = await this.dashboardClient.getSystemNodes();
+    if (systemNodes.data.active_node_count == 0) {
+      this.logger.warn("No connected gateways to process, aborting import")
+      return
+    }
 
-        return promiseResult.value.map((api: API) => {
-          return this.convertApiToResource(api, this.dashboardClients[index].getConfig());
-        });
+    const gatewayNodes: ComponentEntityV1alpha1[] = systemNodes.data.nodes.map((node): ComponentEntityV1alpha1 => {
+      this.logger.info(`Processing ${node.id} ${node.hostname}`)
+
+      return {
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: {
+          annotations: {
+            [ANNOTATION_LOCATION]: 'tyk-gateway-http://localhost:8080/',
+            [ANNOTATION_ORIGIN_LOCATION]: 'tyk-gateway-http://localhost:8080/',
+            'tyk-gateway-id': node.id,
+          },
+          labels: {
+            'id': node.id,
+            'hostname': node.hostname,
+          },
+          name: node.id,
+          title: node.hostname,
+        },
+        spec: {
+          type: 'gateway',
+          lifecycle: 'experimental',
+          owner: 'guests',
+        },
       }
-      return [];
-    }).flat();
-    this.logger.info(`Applying ${allAPIResources.length} Tyk API resources to catalog`);
+    });
 
     await this.connection.applyMutation({
       type: 'full',
-      entities: allAPIResources.map((entity) => ({
+      entities: gatewayNodes.map((entity) => ({
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
     });
   }
 
-  /**
-   * @deprecated Currently not in use. Originally created to service incoming webhook payloads for single-dashboard setups, 
-   * but the move to multi-dashboard setups made it impractical to match incoming payloads to a particular dashboard configuration.
-   * Leaving functionality in place in case of future use case.
-   * @todo We are always taking the first dashboard config in order to just make it kind of work, but this is a bug -
-   * we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
-   * function signature.
-   */
-  async importApi(api: API): Promise<void> {
-    this.logger.info('Importing single API from Tyk');
+  convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
+    const apiResources: ApiEntityV1alpha1[] = []
+
+    for (const api of apis) {
+      this.logger.info(`Processing ${api.api_definition.name}`)
+
+      let spec = {
+        type: 'openapi',
+        system: 'tyk',
+        owner: 'guests',
+        lifecycle: 'experimental',
+        definition: 'openapi: "3.0.0"',
+      }
+
+      let linkPathPart = "designer";
+      if (typeof api.oas == "object") {
+        spec.definition = yaml.dump(api.oas);
+        linkPathPart = "oas";
+      } else if (api.api_definition.graphql?.enabled === true) {
+        spec.definition = api.api_definition.graphql?.schema;
+        spec.type = 'graphql';
+      }
+
+      let authMechamism = (api: API): string => {
+        if (api.api_definition.use_keyless === true) {
+          return 'keyless';
+        }
+
+        if (api.api_definition.use_jwt === true) {
+          return 'jwt';
+        }
+
+        if (api.api_definition.use_oauth2 === true) {
+          return 'oauth2';
+        }
+
+        if (api.api_definition.use_basic_auth === true) {
+          return 'basic';
+        }
+
+        if (api.api_definition.use_standard_auth === true) {
+          return 'auth-token';
+        }
+        return 'unknown';
+      }
+
+      // this is a simplistic API CRD, for purpose of demonstration
+      // note: 
+      //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
+      //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
+      apiResources.push({
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'API',
+        metadata: {
+          annotations: {
+            [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
+            [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
+            'tyk-api-id': api.api_definition.api_id,
+          },
+          links: [
+            {
+              url: `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`,
+              title: "Design Tyk API",
+              icon: "dashboard"
+            },
+            {
+              url: `${this.dashboardApiHost}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
+              title: "Tyk Analytics for API",
+              icon: "chart-bar"
+            },
+          ],
+          labels: {
+            'active': api.api_definition.active.toString(),
+            'api_id': api.api_definition.api_id,
+            'name': kebabCase(api.api_definition.name),
+            'authentication': authMechamism(api),
+          },
+          name: api.api_definition.api_id,
+          title: api.api_definition.name,
+        },
+        spec: spec,
+      })
+    }
+
+    return apiResources
+  }
+
+  async importAllApis(): Promise<void> {
+    this.logger.info("Importing all APIs from Tyk Dashboard")
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
-    const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
-    this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
-    let apiResources: ApiEntityV1alpha1[] = [apiResource];
-    
-    // the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+    const apis: API[] = await this.dashboardClient.getAllApis();
+
+    if (apis == null || apis.length == 0) {
+      this.logger.warn("No APIs to process, aborting import")
+      return
+    }
+    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
+
+    await this.connection.applyMutation({
+      type: 'full',
+      entities: apiResources.map((entity) => ({
+        entity,
+        locationKey: `${this.getProviderName()}`,
+      })),
+    })
+  }
+
+  // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+  async importApi(api: API): Promise<void> {
+    this.logger.info('Importing single API');
+
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    // reuse existing functionality, which was designed to accept an array of APIs
+    const apiResources = this.convertApisToResources([ api ])
+
     await this.connection.applyMutation({
       type: 'delta',
       added: apiResources.map((entity) => ({
@@ -285,6 +229,6 @@ export class TykEntityProvider implements EntityProvider {
         locationKey: `${this.getProviderName()}`,
       })),
       removed: []
-    });
+    })
   }
 }
