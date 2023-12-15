@@ -14,13 +14,13 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
       }),
     },
     async handler(ctx) {
-      logger.info("Running tyk:api:create template action")
+      logger.info('Running tyk:api:create template action')
         
       const dashboardApiToken = config.getString('tyk.dashboardApi.token')
       const dashboardApiHost = config.getString('tyk.dashboardApi.host')
 
       try {
-        const response = await fetch(dashboardApiHost + "/api/apis", {
+        const response = await fetch(dashboardApiHost + '/api/apis', {
           method: 'POST',
           headers: {
             Authorization: dashboardApiToken
@@ -45,15 +45,15 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
   
         const data = await response.json();
         if (response.status != 200) {
-          logger.error('Error adding API to Tyk:' + data);
-          ctx.logger.error('Error adding API to Tyk');
+          logger.error(`Error adding API ${ctx.input.name} to Tyk:` + data);
+          ctx.logger.error(`Error adding API ${ctx.input.name} to Tyk`);
         } else {
-          logger.info('API added to Tyk');
-          ctx.logger.info('API added to Tyk');
+          logger.info(`Added API ${ctx.input.name} to Tyk`);
+          ctx.logger.info(`Added API ${ctx.input.name} to Tyk`);
         }
       } catch (error) {
         logger.error(error);
-        ctx.logger.error('Error adding API to Tyk');
+        ctx.logger.error(`Error adding API ${ctx.input.name} to Tyk`);
       }
     },
   });
