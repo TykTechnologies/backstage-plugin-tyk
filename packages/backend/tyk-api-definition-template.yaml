@@ -23,10 +23,6 @@ spec:
           ui:autofocus: true
           ui:options:
             rows: 1
-        active:
-          title: Active
-          type: boolean
-          description: Active or inactive
         listenPath:
           title: Listen Path
           type: string
@@ -45,7 +41,6 @@ spec:
       action: tyk:api:create
       input:
         name: ${{ parameters.name }}
-        active: ${{ parameters.active }}
         listenPath: ${{ parameters.listenPath }}
         targetUrl: ${{ parameters.targetUrl }}
 
