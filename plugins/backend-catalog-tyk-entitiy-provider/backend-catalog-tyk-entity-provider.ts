@@ -74,8 +74,8 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async getAllApis(): Promise<API[]> {
-    // this is an example, that just fetches the first page of APIs
-    const response = await fetch(`${this.dashboardApiHost}/api/apis`, 
+    // fetches all APIs using p=-1 query param
+    const response = await fetch(`${this.dashboardApiHost}/api/apis?p=-1`, 
       { headers: { Authorization: `${this.dashboardApiToken}` } }
     )
     let jsResponse = await response.json();
