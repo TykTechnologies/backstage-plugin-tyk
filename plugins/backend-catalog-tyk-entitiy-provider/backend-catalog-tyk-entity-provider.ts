@@ -2,6 +2,8 @@ import {
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
   ANNOTATION_EDIT_URL,
+  ANNOTATION_VIEW_URL,
+  ANNOTATION_SOURCE_LOCATION,
   ApiEntityV1alpha1
 } from '@backstage/catalog-model'
 import {
@@ -149,7 +151,7 @@ export class TykEntityProvider implements EntityProvider {
         return 'unknown';
       }
 
-      const dashboardEditApiUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`
+      const apiEditUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`
 
       // this is a simplistic API CRD, for purpose of demonstration
       // note: 
@@ -162,11 +164,13 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: `url:${this.dashboardApiHost}`,
             [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardApiHost}`,
-            [ANNOTATION_EDIT_URL]: `${dashboardEditApiUrl}`,
+            [ANNOTATION_EDIT_URL]: `${apiEditUrl}`,
+            [ANNOTATION_VIEW_URL]: `${apiEditUrl}`,
+            [ANNOTATION_SOURCE_LOCATION]: `${apiEditUrl}`,
           },
           links: [
             {
-              url: dashboardEditApiUrl,
+              url: apiEditUrl,
               title: "Design Tyk API",
               icon: "dashboard"
             },
