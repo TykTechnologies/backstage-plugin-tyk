@@ -149,6 +149,8 @@ export class TykEntityProvider implements EntityProvider {
         return 'unknown';
       }
 
+      const dashboardEditApiUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`
+
       // this is a simplistic API CRD, for purpose of demonstration
       // note: 
       //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
@@ -158,13 +160,13 @@ export class TykEntityProvider implements EntityProvider {
         kind: 'API',
         metadata: {
           annotations: {
-            [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
-            [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
-            [ANNOTATION_EDIT_URL]: 'url:'+this.dashboardApiHost+'/apis/designer/'+api.api_definition.api_id,
+            [ANNOTATION_LOCATION]: `url:${this.dashboardApiHost}`,
+            [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardApiHost}`,
+            [ANNOTATION_EDIT_URL]: `url:${dashboardEditApiUrl}`,
           },
           links: [
             {
-              url: `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`,
+              url: dashboardEditApiUrl,
               title: "Design Tyk API",
               icon: "dashboard"
             },
