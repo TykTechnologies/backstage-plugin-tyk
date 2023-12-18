@@ -162,7 +162,7 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: `url:${this.dashboardApiHost}`,
             [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardApiHost}`,
-            [ANNOTATION_EDIT_URL]: `url:${dashboardEditApiUrl}`,
+            [ANNOTATION_EDIT_URL]: `${dashboardEditApiUrl}`,
           },
           links: [
             {
