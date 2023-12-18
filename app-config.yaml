@@ -124,3 +124,9 @@ tyk:
   dashboardApi:
     host: http://localhost:3000
     token: ${TYKDASHBOARDAPITOKEN}
+  import:
+    importAsNames: true
+    defaults:
+      owner: group:default/guests
+      system: system:default/tyk
+      lifecycle: experimental

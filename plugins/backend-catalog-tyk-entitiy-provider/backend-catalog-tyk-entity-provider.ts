@@ -110,13 +110,21 @@ export class TykEntityProvider implements EntityProvider {
   convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = [];
 
+    const importDefaultLifecycle = this.config.getString('tyk.import.defaults.lifecycle');
+    const importDefaultOwner = this.config.getString('tyk.import.defaults.owner');
+    const importDefaultSystem = this.config.getString('tyk.import.defaults.system');
+
+
     for (const api of apis) {
       this.logger.info(`Processing ${api.api_definition.name}`);
+
+      let owner = undefined;
+      owner ??= importDefaultOwner;
 
       let spec = {
         type: 'openapi',
         system: 'tyk',
-        owner: 'guests',
+        owner: owner,
         lifecycle: 'experimental',
         definition: 'openapi: "3.0.0"',
       };
