@@ -52,6 +52,7 @@ export type ApiEvent = z.infer<typeof ApiEventSchema>;
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
+  private readonly config: Config;
   private readonly dashboardApiHost: string;
   private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
@@ -60,6 +61,7 @@ export class TykEntityProvider implements EntityProvider {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
+    this.config = config
 
     this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
     this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
@@ -127,7 +129,7 @@ export class TykEntityProvider implements EntityProvider {
         spec.definition = api.api_definition.graphql?.schema;
         spec.type = 'graphql';
       }
-
+      
       let authMechamism = (api: API): string => {
         if (api.api_definition.use_keyless === true) {
           return 'keyless';
