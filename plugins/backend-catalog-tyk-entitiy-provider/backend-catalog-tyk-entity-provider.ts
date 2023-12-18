@@ -1,6 +1,7 @@
 import {
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
+  ANNOTATION_EDIT_URL,
   ApiEntityV1alpha1
 } from '@backstage/catalog-model'
 import {
@@ -159,6 +160,7 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
+            [ANNOTATION_EDIT_URL]: 'url:'+this.dashboardApiHost+'/apis/designer/'+api.api_definition.api_id,
           },
           links: [
             {
