@@ -61,21 +61,21 @@ export class TykEntityProvider implements EntityProvider {
     const {logger, env, config} = opts;
     this.logger = logger;
     this.env = env;
-    this.config = config
+    this.config = config;
 
-    this.dashboardApiToken = config.getString('tyk.dashboardApi.token')
-    this.dashboardApiHost = config.getString('tyk.dashboardApi.host')
+    this.dashboardApiToken = config.getString('tyk.dashboardApi.token');
+    this.dashboardApiHost = config.getString('tyk.dashboardApi.host');
 
-    this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`)
-    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`)
+    this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`);
+    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`);
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
-    this.connection = connection
+    this.connection = connection;
   }
 
   getProviderName(): string {
-    return `tyk-entity-provider-${this.env}`
+    return `tyk-entity-provider-${this.env}`;
   }
 
   async getAllApis(): Promise<API[]> {
@@ -90,17 +90,17 @@ export class TykEntityProvider implements EntityProvider {
     if (response.status != 200) {
       switch (response.status) {
         case 401:
-          this.logger.error(`Authorisation failed with Tyk Dashboard ${this.dashboardApiHost} - check that 'tyk.dashboardApi.token' app config setting is correct`)
+          this.logger.error(`Authorisation failed with Tyk Dashboard ${this.dashboardApiHost} - check that 'tyk.dashboardApi.token' app config setting is correct`);
           break;
         default:
-          this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`)
+          this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`);
           break;
       }
     } else {
       if (data.apis == undefined) {
-        this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`)
+        this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`);
       } else {
-        APIListResponseSchema.parse(data)
+        APIListResponseSchema.parse(data);
       }
     }
     
@@ -108,10 +108,10 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
-    const apiResources: ApiEntityV1alpha1[] = []
+    const apiResources: ApiEntityV1alpha1[] = [];
 
     for (const api of apis) {
-      this.logger.info(`Processing ${api.api_definition.name}`)
+      this.logger.info(`Processing ${api.api_definition.name}`);
 
       let spec = {
         type: 'openapi',
@@ -119,7 +119,7 @@ export class TykEntityProvider implements EntityProvider {
         owner: 'guests',
         lifecycle: 'experimental',
         definition: 'openapi: "3.0.0"',
-      }
+      };
 
       let linkPathPart = "designer";
       if (typeof api.oas == "object") {
@@ -153,7 +153,7 @@ export class TykEntityProvider implements EntityProvider {
         return 'unknown';
       }
 
-      const apiEditUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`
+      const apiEditUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
       // this is a simplistic API CRD, for purpose of demonstration
       // note: 
@@ -192,14 +192,14 @@ export class TykEntityProvider implements EntityProvider {
           title: api.api_definition.name,
         },
         spec: spec,
-      })
+      });
     }
 
-    return apiResources
+    return apiResources;
   }
 
   async importAllApis(): Promise<void> {
-    this.logger.info("Importing all APIs from Tyk Dashboard")
+    this.logger.info("Importing all APIs from Tyk Dashboard");
 
     if (!this.connection) {
       throw new Error('Not initialized');
@@ -208,10 +208,10 @@ export class TykEntityProvider implements EntityProvider {
     const apis: API[] = await this.getAllApis();
 
     if (apis == null || apis.length == 0) {
-      this.logger.warn("No APIs to process, aborting import")
-      return
+      this.logger.warn("No APIs to process, aborting import");
+      return;
     }
-    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
+    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis);
 
     await this.connection.applyMutation({
       type: 'full',
@@ -219,7 +219,7 @@ export class TykEntityProvider implements EntityProvider {
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
-    })
+    });
   }
 
   // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
@@ -231,7 +231,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     // reuse existing functionality, which was designed to accept an array of APIs
-    const apiResources = this.convertApisToResources([ api ])
+    const apiResources = this.convertApisToResources([ api ]);
 
     await this.connection.applyMutation({
       type: 'delta',
@@ -240,6 +240,6 @@ export class TykEntityProvider implements EntityProvider {
         locationKey: `${this.getProviderName()}`,
       })),
       removed: []
-    })
+    });
   }
 }
