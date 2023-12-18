@@ -159,7 +159,6 @@ export class TykEntityProvider implements EntityProvider {
           annotations: {
             [ANNOTATION_LOCATION]: 'tyk-api-http://localhost:3000/',
             [ANNOTATION_ORIGIN_LOCATION]: 'tyk-api-http://localhost:3000/',
-            'tyk-api-id': api.api_definition.api_id,
           },
           links: [
             {
@@ -175,7 +174,7 @@ export class TykEntityProvider implements EntityProvider {
           ],
           labels: {
             'active': api.api_definition.active.toString(),
-            'api_id': api.api_definition.api_id,
+            'tykApiId': api.api_definition.api_id,
             'name': kebabCase(api.api_definition.name),
             'authentication': authMechamism(api),
           },
