@@ -47,6 +47,8 @@ const APISchema = z.object({
     }).optional(),
   }),
   oas: z.any().optional(),
+  user_group_owners: z.array(z.string()).optional(),
+  user_owners: z.array(z.string()).optional(),
 });
 
 const ApiEventSchema = z.object({
@@ -215,6 +217,19 @@ export class TykEntityProvider implements EntityProvider {
           apiResource.metadata.labels!["tyk.io/"+label.key] = label.value;
         }
       }
+
+      // add ownership data as labels, if it exists
+      // a few issues here:
+      //   1 - the data is stored as guids in the apidef, so would need to perform lookup to get name of user/group
+      //   2 - backstage labels are limited to 64 characters, so there is potential to exceed that amount, and if that happens then the entity will fail validation and won't be imported
+      //   3 - backstage labels have a limited character set, so we have to use a dot as separator
+      if (api.user_owners) {
+        apiResource.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
+      }      
+      if (api.user_group_owners) {
+        apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
+      }
+
 
       apiResources.push(apiResource);
     }
