@@ -27,7 +27,12 @@ const APISchema = z.object({
         owner: z.string().optional(),
         lifecycle: z.string().optional(),
         system: z.string().optional(),
-        // labels: z.array().optional(),
+        labels: z.array(
+          z.object({
+            key: z.string(),
+            value: z.string(),
+          })
+        ).optional()
       }).optional(),
     }).optional(),
     use_keyless: z.boolean().optional(),
@@ -121,24 +126,6 @@ export class TykEntityProvider implements EntityProvider {
     for (const api of apis) {
       this.logger.info(`Processing ${api.api_definition.name}`);
 
-
-      // TODO: 
-      // - load data from API configdata field
-      // - iterate through array
-      // - set backstage data and labels accordingly
-      // - for 'required' data, perform check and replace with default if missing
-
-      // {
-      //   "config_data" : {
-      //     "backstage" : {
-      //         "owner": "user:guest"
-      //       "labels": [
-      //         "abc": 123
-      //       ]
-      //     }
-      //   }
-      // }
-
       let spec = {
         type: 'openapi',
         system: api.api_definition.config_data?.backstage?.system ?? this.config.getString('tyk.import.defaults.system'),
@@ -185,7 +172,7 @@ export class TykEntityProvider implements EntityProvider {
       // note: 
       //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
       //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
-      apiResources.push({
+      let apiResource: ApiEntityV1alpha1 = {
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
         metadata: {
@@ -209,16 +196,27 @@ export class TykEntityProvider implements EntityProvider {
             },
           ],
           labels: {
-            'active': api.api_definition.active.toString(),
-            'tykApiId': api.api_definition.api_id,
-            'name': kebabCase(api.api_definition.name),
-            'authentication': authMechamism(api),
+            'tyk.io/active': api.api_definition.active.toString(),
+            'tyk.io/tykApiId': api.api_definition.api_id,
+            'tyk.io/name': kebabCase(api.api_definition.name),
+            'tyk.io/authentication': authMechamism(api),
           },
           name: api.api_definition.api_id,
           title: api.api_definition.name,
         },
         spec: spec,
-      });
+      };
+
+      // add custom labels, if any exist
+      if (api.api_definition.config_data?.backstage?.labels) {
+        for (const label of api.api_definition.config_data?.backstage?.labels!) {
+          // use to 'tyk.io/' prefix to distinguish labels from Tyk
+          // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
+          apiResource.metadata.labels!["tyk.io/"+label.key] = label.value;
+        }
+      }
+
+      apiResources.push(apiResource);
     }
 
     return apiResources;
