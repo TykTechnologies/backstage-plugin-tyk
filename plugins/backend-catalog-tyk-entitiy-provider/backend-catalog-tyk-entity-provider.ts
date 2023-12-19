@@ -22,6 +22,14 @@ const APISchema = z.object({
     api_id: z.string(),
     name: z.string(),
     active: z.boolean(),
+    config_data: z.object({
+      backstage: z.object({
+        owner: z.string().optional(),
+        lifecycle: z.string().optional(),
+        system: z.string().optional(),
+        // labels: z.array().optional(),
+      }).optional(),
+    }).optional(),
     use_keyless: z.boolean().optional(),
     use_oauth2: z.boolean().optional(),
     use_standard_auth: z.boolean().optional(),
@@ -110,22 +118,32 @@ export class TykEntityProvider implements EntityProvider {
   convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = [];
 
-    const importDefaultLifecycle = this.config.getString('tyk.import.defaults.lifecycle');
-    const importDefaultOwner = this.config.getString('tyk.import.defaults.owner');
-    const importDefaultSystem = this.config.getString('tyk.import.defaults.system');
-
-
     for (const api of apis) {
       this.logger.info(`Processing ${api.api_definition.name}`);
 
-      let owner = undefined;
-      owner ??= importDefaultOwner;
+
+      // TODO: 
+      // - load data from API configdata field
+      // - iterate through array
+      // - set backstage data and labels accordingly
+      // - for 'required' data, perform check and replace with default if missing
+
+      // {
+      //   "config_data" : {
+      //     "backstage" : {
+      //         "owner": "user:guest"
+      //       "labels": [
+      //         "abc": 123
+      //       ]
+      //     }
+      //   }
+      // }
 
       let spec = {
         type: 'openapi',
-        system: 'tyk',
-        owner: owner,
-        lifecycle: 'experimental',
+        system: api.api_definition.config_data?.backstage?.system ?? this.config.getString('tyk.import.defaults.system'),
+        owner: api.api_definition.config_data?.backstage?.owner ?? this.config.getString('tyk.import.defaults.owner'),
+        lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? this.config.getString('tyk.import.defaults.lifecycle'),
         definition: 'openapi: "3.0.0"',
       };
 
