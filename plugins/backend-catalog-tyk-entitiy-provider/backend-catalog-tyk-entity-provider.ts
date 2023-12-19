@@ -223,10 +223,10 @@ export class TykEntityProvider implements EntityProvider {
       //   1 - the data is stored as guids in the apidef, so would need to perform lookup to get name of user/group
       //   2 - backstage labels are limited to 64 characters, so there is potential to exceed that amount, and if that happens then the entity will fail validation and won't be imported
       //   3 - backstage labels have a limited character set, so we have to use a dot as separator
-      if (api.user_owners) {
+      if (api.user_owners && api.user_owners.length > 0) {
         apiResource.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
       }      
-      if (api.user_group_owners) {
+      if (api.user_group_owners && api.user_group_owners.length > 0) {
         apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
       }
 
