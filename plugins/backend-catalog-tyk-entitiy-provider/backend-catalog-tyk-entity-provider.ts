@@ -212,7 +212,7 @@ export class TykEntityProvider implements EntityProvider {
       // add custom labels, if any exist
       if (api.api_definition.config_data?.backstage?.labels) {
         for (const label of api.api_definition.config_data?.backstage?.labels!) {
-          // use to 'tyk.io/' prefix to distinguish labels from Tyk
+          // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
           // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
           apiResource.metadata.labels!["tyk.io/"+label.key] = label.value;
         }
