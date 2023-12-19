@@ -199,7 +199,7 @@ export class TykEntityProvider implements EntityProvider {
           ],
           labels: {
             'tyk.io/active': api.api_definition.active.toString(),
-            'tyk.io/tykApiId': api.api_definition.api_id,
+            'tyk.io/apiId': api.api_definition.api_id,
             'tyk.io/name': kebabCase(api.api_definition.name),
             'tyk.io/authentication': authMechamism(api),
           },
