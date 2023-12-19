@@ -1,4 +1,4 @@
-import {SystemNode, SystemNodeSchema} from "../model/nodes";
+import {NodeDetail, NodeDetailSchema, SystemNode, SystemNodeSchema} from "../model/nodes";
 import {Logger} from 'winston';
 import {API, APIListResponse, APIListResponseSchema} from "../model/apis";
 
@@ -36,6 +36,31 @@ export class DashboardClient {
       }
     } else {
       SystemNodeSchema.parse(data)
+    }
+
+    return data;
+  }
+
+  async getNodeDetail(nodeID: string, nodeHostname: string): Promise<NodeDetail> {
+    const res: Response = await fetch(`${this.dashboardApiHost}/api/system/node/${nodeID}/${nodeHostname}`,
+      { headers: { Authorization: `${this.dashboardApiToken}` } }
+    )
+    const data: NodeDetail = await res.json();
+
+    if (res.status != 200) {
+      switch (res.status) {
+        case 404:
+          this.logger.error(`Node ${nodeID}/${nodeHostname} not found`);
+          break;
+        case 401:
+          this.logger.error(`Not authorized`);
+          break;
+        default:
+          this.logger.error(`Error fetching node detail: ${res.status} ${res.statusText}`)
+          break;
+      }
+    } else {
+      NodeDetailSchema.parse(data)
     }
 
     return data;

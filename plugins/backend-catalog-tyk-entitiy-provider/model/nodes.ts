@@ -34,8 +34,21 @@ const SystemNodeSchema = z.object({
 
 type SystemNode = z.infer<typeof SystemNodeSchema>;
 
+const NodeDetailSchema = z.object({
+  data: z.object({
+    db_app_conf_options: z.object({
+      // connection_string: z.string(),
+      node_is_segmented: z.boolean(),
+      tags: z.array(z.string()),
+    }),
+  })
+});
+
+type NodeDetail = z.infer<typeof NodeDetailSchema>;
+
 export {
-  SystemNodeSchema
+  SystemNodeSchema,
+  NodeDetailSchema,
 };
 
-export type { SystemNode };
+export type {SystemNode, NodeDetail};

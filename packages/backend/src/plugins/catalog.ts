@@ -93,7 +93,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api/import-all'
     id: 'run_tyk_entity_provider_refresh',
     fn: async () => {
       await tykEntityProvider.importGatewayNodes();
-      await tykEntityProvider.importAllApis();
+      // await tykEntityProvider.importAllApis();
     },
     frequency: { minutes: 1 },
     timeout: { minutes: 1 },

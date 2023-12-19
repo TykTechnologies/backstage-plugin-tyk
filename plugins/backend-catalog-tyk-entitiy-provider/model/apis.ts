@@ -15,6 +15,7 @@ const APISchema = z.object({
       enabled: z.boolean(),
       schema: z.string(),
     }).optional(),
+    tags: z.array(z.string()),
   }),
   oas: z.any().optional(),
 });

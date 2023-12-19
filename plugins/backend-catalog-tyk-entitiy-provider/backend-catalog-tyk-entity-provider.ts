@@ -13,7 +13,7 @@ import {Logger} from 'winston';
 import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {SystemNode} from "./model/nodes";
+import {NodeDetail, SystemNode} from "./model/nodes";
 import {DashboardClient} from "./client/dashboard";
 import {API} from "./model/apis";
 
@@ -58,16 +58,39 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
+    const apis: API[] = await this.dashboardClient.getAllApis();
+
     const systemNodes: SystemNode = await this.dashboardClient.getSystemNodes();
     if (systemNodes.data.active_node_count == 0) {
       this.logger.warn("No connected gateways to process, aborting import")
       return
     }
 
-    const gatewayNodes: ComponentEntityV1alpha1[] = systemNodes.data.nodes.map((node): ComponentEntityV1alpha1 => {
+    let gatewayNodes: ComponentEntityV1alpha1[] = [];
+
+    for (const node of systemNodes.data.nodes) {
       this.logger.info(`Processing ${node.id} ${node.hostname}`)
 
-      return {
+      let nodeDetail: NodeDetail = await this.dashboardClient.getNodeDetail(node.id, node.hostname)
+
+      let providesApis: string[] = ['tyk-gateway-api']
+      if (nodeDetail.data.db_app_conf_options.node_is_segmented) {
+        this.logger.info(`Node ${node.id} ${node.hostname} is segmented, will provide APIs ${JSON.stringify(nodeDetail.data.db_app_conf_options.tags)}`)
+
+        let loads = apis.some((api) => nodeDetail.data.db_app_conf_options.tags.includes()
+
+        apiResources.forEach((api) => {
+          if (api.spec.definition) {
+            providesApis.push(`${api.metadata.uid}`)
+          }
+        });
+      } else {
+        apiResources.forEach((api) => {
+          providesApis.push(`${api.metadata.uid}`)
+        });
+      }
+
+      gatewayNodes.push({
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'Component',
         metadata: {
@@ -84,12 +107,16 @@ export class TykEntityProvider implements EntityProvider {
           title: node.hostname,
         },
         spec: {
-          type: 'gateway',
-          lifecycle: 'experimental',
+          type: 'service',
+          lifecycle: 'production',
           owner: 'guests',
+          providesApis: providesApis,
+          system: 'tyk',
+          consumesApis: ['default/tyk-dashboard-system-api'],
+          dependsOn: ['component:default/tyk-dashboard', 'resource:default/tyk-gateway-storage'],
         },
-      }
-    });
+      });
+    }
 
     await this.connection.applyMutation({
       type: 'full',
@@ -176,6 +203,7 @@ export class TykEntityProvider implements EntityProvider {
             'api_id': api.api_definition.api_id,
             'name': kebabCase(api.api_definition.name),
             'authentication': authMechamism(api),
+            'tags': JSON.stringify(api.api_definition.tags),
           },
           name: api.api_definition.api_id,
           title: api.api_definition.name,
@@ -200,7 +228,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.warn("No APIs to process, aborting import")
       return
     }
-    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis)
+    const apiResources: ApiEntityV1alpha1[] = this.convertApisToResources(apis)
 
     await this.connection.applyMutation({
       type: 'full',
@@ -220,7 +248,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     // reuse existing functionality, which was designed to accept an array of APIs
-    const apiResources = this.convertApisToResources([ api ])
+    const apiResources = this.convertApisToResources([api])
 
     await this.connection.applyMutation({
       type: 'delta',
