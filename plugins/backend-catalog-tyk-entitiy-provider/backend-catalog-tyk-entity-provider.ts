@@ -64,13 +64,24 @@ type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
 export type ApiEvent = z.infer<typeof ApiEventSchema>;
 
+const TykDashboardConfigSchema = z.object({
+  host: z.string(),
+  token: z.string(),
+  defaults: z.object({
+    owner: z.string().optional(),
+    system: z.string().optional(),
+    lifecycle: z.string().optional(),
+  }).optional(),
+});
+
+type TykDashboardConfig = z.infer<typeof TykDashboardConfigSchema>;
+
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
   private readonly config: Config;
-  private readonly dashboardApiHost: string;
-  private readonly dashboardApiToken: string;
   private connection?: EntityProviderConnection;
+  private dashboardConfigs: TykDashboardConfig[] = [];
 
   constructor(opts: { logger: Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
@@ -78,11 +89,15 @@ export class TykEntityProvider implements EntityProvider {
     this.env = env;
     this.config = config;
 
-    this.dashboardApiToken = config.getString('tyk.dashboardApi.token');
-    this.dashboardApiHost = config.getString('tyk.dashboardApi.host');
+    for (const dc of this.config.getConfigArray("tyk.dashboards")) {
+      const dashboardConfig: TykDashboardConfig = dc.get();
+      this.dashboardConfigs.push(dashboardConfig);
+      this.logger.info(`Loaded Tyk Dashboard config for host ${dashboardConfig.host} with token starting ${dashboardConfig.token.slice(0, 4)}`);
+    }
 
-    this.logger.info(`Tyk Dashboard Host: ${this.dashboardApiHost}`);
-    this.logger.info(`Tyk Dashboard Token: ${this.dashboardApiToken.slice(0, 4)} (first 4 characters)`);
+    if (this.dashboardConfigs.length == 0) {
+      this.logger.error("No Tyk Dashboard configuration found");
+    }
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -93,10 +108,10 @@ export class TykEntityProvider implements EntityProvider {
     return `tyk-entity-provider-${this.env}`;
   }
 
-  async getAllApis(): Promise<API[]> {
+  async getAllApis(dashboardConfig: TykDashboardConfig): Promise<API[]> {
     // fetches all APIs using p=-1 query param
-    const response = await fetch(`${this.dashboardApiHost}/api/apis?p=-1`, 
-      { headers: { Authorization: `${this.dashboardApiToken}` } }
+    const response = await fetch(`${dashboardConfig.host}/api/apis?p=-1`, 
+      { headers: { Authorization: `${dashboardConfig.token}` } }
     )
     let jsResponse = await response.json();
 
@@ -105,15 +120,15 @@ export class TykEntityProvider implements EntityProvider {
     if (response.status != 200) {
       switch (response.status) {
         case 401:
-          this.logger.error(`Authorisation failed with Tyk Dashboard ${this.dashboardApiHost} - check that 'tyk.dashboardApi.token' app config setting is correct`);
+          this.logger.error(`Authorisation failed with Tyk Dashboard ${dashboardConfig.host} - check that 'token' is correctly configured in 'tyk.dashboard' app config settings`);
           break;
         default:
-          this.logger.error(`Error fetching API definitions from ${this.dashboardApiHost}: ${response.status} ${response.statusText}`);
+          this.logger.error(`Error fetching API definitions from ${dashboardConfig.host}: ${response.status} ${response.statusText}`);
           break;
       }
     } else {
       if (data.apis == undefined) {
-        this.logger.warn(`No API definitions found at ${this.dashboardApiHost}.`);
+        this.logger.warn(`No API definitions found at ${dashboardConfig.host}.`);
       } else {
         APIListResponseSchema.parse(data);
       }
@@ -122,17 +137,19 @@ export class TykEntityProvider implements EntityProvider {
     return data.apis;
   }
 
-  convertApisToResources(apis: API[]): ApiEntityV1alpha1[] {
+  convertApisToResources(apis: API[], dashboardHost: string, defaultSystem?: string, defaultOwner?: string, defaultLifecycle?: string): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = [];
 
     for (const api of apis) {
-      this.logger.info(`Processing ${api.api_definition.name}`);
+      this.logger.info(`Generating API resource for ${api.api_definition.name}`);
 
+      // it is posible that neither the api definition config data or the defaults are set, in which case the spec will fail schema validation
+      // this is intentional, as one of the two must be set, or both
       let spec = {
         type: 'openapi',
-        system: api.api_definition.config_data?.backstage?.system ?? this.config.getString('tyk.import.defaults.system'),
-        owner: api.api_definition.config_data?.backstage?.owner ?? this.config.getString('tyk.import.defaults.owner'),
-        lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? this.config.getString('tyk.import.defaults.lifecycle'),
+        system: api.api_definition.config_data?.backstage?.system ?? defaultSystem,
+        owner: api.api_definition.config_data?.backstage?.owner ?? defaultOwner,
+        lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? defaultLifecycle,
         definition: 'openapi: "3.0.0"',
       };
 
@@ -168,7 +185,7 @@ export class TykEntityProvider implements EntityProvider {
         return 'unknown';
       }
 
-      const apiEditUrl = `${this.dashboardApiHost}/apis/${linkPathPart}/${api.api_definition.api_id}`;
+      const apiEditUrl = `${dashboardHost}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
       // this is a simplistic API CRD, for purpose of demonstration
       // note: 
@@ -179,8 +196,8 @@ export class TykEntityProvider implements EntityProvider {
         kind: 'API',
         metadata: {
           annotations: {
-            [ANNOTATION_LOCATION]: `url:${this.dashboardApiHost}`,
-            [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardApiHost}`,
+            [ANNOTATION_LOCATION]: `url:${dashboardHost}`,
+            [ANNOTATION_ORIGIN_LOCATION]: `url:${dashboardHost}`,
             [ANNOTATION_EDIT_URL]: `${apiEditUrl}`,
             [ANNOTATION_VIEW_URL]: `${apiEditUrl}`,
             [ANNOTATION_SOURCE_LOCATION]: `${apiEditUrl}`,
@@ -192,7 +209,7 @@ export class TykEntityProvider implements EntityProvider {
               icon: "dashboard"
             },
             {
-              url: `${this.dashboardApiHost}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
+              url: `${dashboardHost}/activity-api/${api.api_definition.api_id}?api_name=${api.api_definition.name}`,
               title: "Tyk Analytics for API",
               icon: "chart-bar"
             },
@@ -238,23 +255,34 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllApis(): Promise<void> {
-    this.logger.info("Importing all APIs from Tyk Dashboard");
-
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
-    const apis: API[] = await this.getAllApis();
+    let allApiResources:ApiEntityV1alpha1[] = [];
 
-    if (apis == null || apis.length == 0) {
-      this.logger.warn("No APIs to process, aborting import");
-      return;
+    for (const dashboardConfig of this.dashboardConfigs) {
+      this.logger.info(`Importing APIs from Tyk Dashboard host ${dashboardConfig.host}`);
+
+      const apis: API[] = await this.getAllApis(dashboardConfig);
+
+      if (apis == null || apis.length == 0) {
+        this.logger.warn("No APIs to process, aborting import");
+        return;
+      }
+
+      const hostApiResources = this.convertApisToResources(apis, dashboardConfig.host, dashboardConfig.defaults?.system, dashboardConfig.defaults?.owner, dashboardConfig.defaults?.lifecycle);
+
+      this.logger.info(`Generated ${hostApiResources.length} API resources from host ${dashboardConfig.host}`);
+
+      allApiResources = allApiResources.concat(hostApiResources);
     }
-    const apiResources:ApiEntityV1alpha1[] = this.convertApisToResources(apis);
 
+    this.logger.info(`Applying ${allApiResources.length} resources to catalog`);
+    
     await this.connection.applyMutation({
       type: 'full',
-      entities: apiResources.map((entity) => ({
+      entities: allApiResources.map((entity) => ({
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
