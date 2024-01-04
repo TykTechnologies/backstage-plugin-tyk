@@ -48,12 +48,14 @@ curl --location 'localhost:7007/api/catalog/tyk/api/hook' \
       
       switch (apiEvent.event) {
         case "api_event.add":
-          tykEntityProvider.importApi(
+        case "api_event.update":
+            tykEntityProvider.importApi(
             apiEvent.data
           );
           res.status(200).end();
           break;
         default:
+          env.logger.warn(`Webhook received with unknown api event: ${apiEvent.event}`)
           res.status(400).json({error: "unknown api event type"}).end();
           break;
       }
