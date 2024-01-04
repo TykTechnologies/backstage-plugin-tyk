@@ -3,7 +3,7 @@ kind: Component
 metadata:
   name: tyk-backstage
   annotations:
-    backstage.io/adr-location: docs/adrs
+    backstage.io/adr-location: ./docs/adrs
 spec:
   type: website
   owner: john@example.com

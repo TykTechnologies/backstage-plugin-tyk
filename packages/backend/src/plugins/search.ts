@@ -9,6 +9,7 @@ import { DefaultCatalogCollatorFactory } from '@backstage/plugin-catalog-backend
 import { DefaultTechDocsCollatorFactory } from '@backstage/plugin-techdocs-backend';
 import { Router } from 'express';
 import {DefaultAdrCollatorFactory} from "@backstage/plugin-adr-backend";
+import {madrFilePathFilter} from "@backstage/plugin-adr-common";
 
 export default async function createPlugin(
   env: PluginEnvironment,
@@ -50,17 +51,18 @@ export default async function createPlugin(
     }),
   });
 
-  // indexBuilder.addCollator({
-  //   schedule,
-  //   factory: DefaultAdrCollatorFactory.fromConfig({
-  //     cache: env.cache,
-  //     config: env.config,
-  //     discovery: env.discovery,
-  //     logger: env.logger,
-  //     reader: env.reader,
-  //     tokenManager: env.tokenManager,
-  //   }),
-  // });
+  indexBuilder.addCollator({
+    schedule,
+    factory: DefaultAdrCollatorFactory.fromConfig({
+      adrFilePathFilterFn: madrFilePathFilter,
+      cache: env.cache,
+      config: env.config,
+      discovery: env.discovery,
+      logger: env.logger,
+      reader: env.reader,
+      tokenManager: env.tokenManager,
+    }),
+  });
 
   // The scheduler controls when documents are gathered from collators and sent
   // to the search engine for indexing.
