@@ -247,7 +247,6 @@ export class TykEntityProvider implements EntityProvider {
         apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
       }
 
-
       apiResources.push(apiResource);
     }
 
