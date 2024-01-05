@@ -81,7 +81,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
   private readonly config: Config;
   private connection?: EntityProviderConnection;
-  private dashboardConfigs: TykDashboardConfig[] = [];
+  private dashboardConfigs: TykDashboardConfig[];
 
   constructor(opts: { logger: Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
@@ -89,10 +89,11 @@ export class TykEntityProvider implements EntityProvider {
     this.env = env;
     this.config = config;
 
-    for (const dc of this.config.getConfigArray("tyk.dashboards")) {
-      const dashboardConfig: TykDashboardConfig = dc.get();
-      this.dashboardConfigs.push(dashboardConfig);
-      this.logger.info(`Loaded Tyk Dashboard config for host ${dashboardConfig.host} with token starting ${dashboardConfig.token.slice(0, 4)}`);
+    this.dashboardConfigs = this.config.get("tyk.dashboards") as TykDashboardConfig[]
+
+    for (const key in this.dashboardConfigs) {
+      const dashboardConfig = this.dashboardConfigs[key];
+      this.logger.info(`Loaded "${key}" Tyk Dashboard config with host ${dashboardConfig.host} and token starting ${dashboardConfig.token.slice(0, 4)}`);
     }
 
     if (this.dashboardConfigs.length == 0) {
@@ -137,11 +138,15 @@ export class TykEntityProvider implements EntityProvider {
     return data.apis;
   }
 
-  convertApisToResources(apis: API[], dashboardHost: string, defaultSystem?: string, defaultOwner?: string, defaultLifecycle?: string): ApiEntityV1alpha1[] {
+  convertApisToResources(apis: API[], namespace: string, dashboardHost: string, defaultSystem?: string, defaultOwner?: string, defaultLifecycle?: string): ApiEntityV1alpha1[] {
     const apiResources: ApiEntityV1alpha1[] = [];
 
     for (const api of apis) {
       this.logger.info(`Generating API resource for ${api.api_definition.name}`);
+
+      // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
+      // this is to avoid collisions between identical APIs in different Tyk dashboards
+      const resourceName = `${kebabCase(namespace)}-${api.api_definition.api_id}`;
 
       // it is posible that neither the api definition config data or the defaults are set, in which case the spec will fail schema validation
       // this is intentional, as one of the two must be set, or both
@@ -220,7 +225,7 @@ export class TykEntityProvider implements EntityProvider {
             'tyk.io/name': kebabCase(api.api_definition.name),
             'tyk.io/authentication': authMechamism(api),
           },
-          name: api.api_definition.api_id,
+          name: resourceName,
           title: api.api_definition.name,
         },
         spec: spec,
@@ -260,17 +265,19 @@ export class TykEntityProvider implements EntityProvider {
 
     let allApiResources:ApiEntityV1alpha1[] = [];
 
-    for (const dashboardConfig of this.dashboardConfigs) {
+    for (const key in this.dashboardConfigs) {
+      const dashboardConfig = this.dashboardConfigs[key];
+
       this.logger.info(`Importing APIs from Tyk Dashboard host ${dashboardConfig.host}`);
 
       const apis: API[] = await this.getAllApis(dashboardConfig);
 
       if (apis == null || apis.length == 0) {
-        this.logger.warn("No APIs to process, aborting import");
-        return;
+        this.logger.warn(`No APIs found at ${dashboardConfig.host}`);
+        continue;
       }
 
-      const hostApiResources = this.convertApisToResources(apis, dashboardConfig.host, dashboardConfig.defaults?.system, dashboardConfig.defaults?.owner, dashboardConfig.defaults?.lifecycle);
+      const hostApiResources = this.convertApisToResources(apis, key, dashboardConfig.host, dashboardConfig.defaults?.system, dashboardConfig.defaults?.owner, dashboardConfig.defaults?.lifecycle);
 
       this.logger.info(`Generated ${hostApiResources.length} API resources from host ${dashboardConfig.host}`);
 
