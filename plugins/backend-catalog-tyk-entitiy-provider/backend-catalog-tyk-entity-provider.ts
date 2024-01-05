@@ -144,6 +144,8 @@ export class TykEntityProvider implements EntityProvider {
     for (const api of apis) {
       this.logger.info(`Generating API resource for ${api.api_definition.name}`);
 
+      // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
+      // this is to avoid collisions between identical APIs in different Tyk dashboards
       const resourceName = `${kebabCase(namespace)}-${api.api_definition.api_id}`;
 
       // it is posible that neither the api definition config data or the defaults are set, in which case the spec will fail schema validation
@@ -314,10 +316,3 @@ export class TykEntityProvider implements EntityProvider {
     });
   }
 }
-
-
-TODO:
-- switch all syncs to full, not delta
-- add sync interval as config value
-- add api delete event (and any others)
-- deal with tyk categories in api name, split to sanitise name, and use remaining as 'tags' (perhaps make this options with config)
