@@ -91,6 +91,12 @@ curl --location 'localhost:7007/api/catalog/tyk/api/import-all'
     res.status(200).end();
   })
 
+  // this is to enable webhook posts to trigger a full sync
+  router.post("/tyk/api/import-all", async (_req, res) => {
+    await tykEntityProvider.importAllApis();
+    res.status(200).end();
+  })
+
   await env.scheduler.scheduleTask({
     id: 'run_tyk_entity_provider_refresh',
     fn: async () => {
