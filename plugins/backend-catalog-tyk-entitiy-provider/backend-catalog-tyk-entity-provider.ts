@@ -51,6 +51,10 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async getAllApis(dashboardConfig: TykDashboardConfig): Promise<API[]> {
+
+    this.logger.info(`Fetching APIs from ${JSON.stringify(dashboardConfig)}`)
+
+
     // fetches all APIs using p=-1 query param
     const response = await fetch(`${dashboardConfig.host}/api/apis?p=-1`,
       { headers: { Authorization: `${dashboardConfig.token}` } }
@@ -62,7 +66,7 @@ export class TykEntityProvider implements EntityProvider {
     if (response.status != 200) {
       switch (response.status) {
         case 401:
-          this.logger.error(`Authorisation failed with Tyk Dashboard ${dashboardConfig.host} - check that 'token' is correctly configured in 'tyk.dashboard' app config settings`);
+          this.logger.error(`Authorisation failed with Tyk Dashboard ${dashboardConfig.host} - check that 'token' is correctly configured in 'tyk.dashboards[]' app config settings`);
           break;
         default:
           this.logger.error(`Error fetching API definitions from ${dashboardConfig.host}: ${response.status} ${response.statusText}`);

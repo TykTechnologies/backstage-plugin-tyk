@@ -1,5 +1,5 @@
 import React from 'react';
-import { makeStyles, Theme, Grid, Paper } from '@material-ui/core';
+import {makeStyles, Theme, Grid, Paper, List} from '@material-ui/core';
 
 import { CatalogSearchResultListItem } from '@backstage/plugin-catalog';
 import {
@@ -24,6 +24,7 @@ import {
   Page,
 } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
+import {AdrSearchResultListItem} from "@backstage/plugin-adr";
 
 const useStyles = makeStyles((theme: Theme) => ({
   bar: {
@@ -70,6 +71,11 @@ const SearchPage = () => {
                   name: 'Documentation',
                   icon: <DocsIcon />,
                 },
+                {
+                  value: 'adr',
+                  name: 'Architecture Decision Records',
+                  icon: <DocsIcon />,
+                },
               ]}
             />
             <Paper className={classes.filters}>
@@ -111,8 +117,24 @@ const SearchPage = () => {
           <Grid item xs={9}>
             <SearchPagination />
             <SearchResult>
-              <CatalogSearchResultListItem icon={<CatalogIcon />} />
-              <TechDocsSearchResultListItem icon={<DocsIcon />} />
+              {({results}) => (
+                <List>
+                  {
+                    results.map(({type, document}) => {
+                      switch (type) {
+                        case 'adr':
+                          return (
+                            <AdrSearchResultListItem
+                              key={document.location} icon={<DocsIcon/>}
+                            />
+                          );
+                        default:
+                          return (<> </>);
+                      }
+                    })
+                  }
+                </List>
+              )}
             </SearchResult>
           </Grid>
         </Grid>

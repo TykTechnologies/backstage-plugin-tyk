@@ -5,9 +5,10 @@ import {
   LunrSearchEngine,
 } from '@backstage/plugin-search-backend-node';
 import { PluginEnvironment } from '../types';
-import { DefaultCatalogCollatorFactory } from '@backstage/plugin-catalog-backend';
-import { DefaultTechDocsCollatorFactory } from '@backstage/plugin-techdocs-backend';
+import { DefaultCatalogCollatorFactory } from '@backstage/plugin-search-backend-module-catalog';
+import { DefaultTechDocsCollatorFactory } from '@backstage/plugin-search-backend-module-techdocs';
 import { Router } from 'express';
+import { DefaultAdrCollatorFactory } from '@backstage/plugin-adr-backend';
 
 export default async function createPlugin(
   env: PluginEnvironment,
@@ -47,6 +48,24 @@ export default async function createPlugin(
       logger: env.logger,
       tokenManager: env.tokenManager,
     }),
+  });
+
+  const adrSchedule = env.scheduler.createScheduledTaskRunner({
+    frequency: { minutes: 1 },
+    timeout: { minutes: 15 },
+    initialDelay: { seconds: 3 },
+  });
+
+  indexBuilder.addCollator({
+    schedule: adrSchedule,
+    factory: DefaultAdrCollatorFactory.fromConfig({
+      cache: env.cache,
+      config: env.config,
+      discovery: env.discovery,
+      logger: env.logger,
+      reader: env.reader,
+      tokenManager: env.tokenManager,
+    })
   });
 
   // The scheduler controls when documents are gathered from collators and sent
