@@ -13,9 +13,11 @@ import {
 
 import {Logger} from 'winston';
 import {Config} from '@backstage/config';
+import { Router } from 'express';
+import { PluginTaskScheduler } from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig} from "./schemas/schemas";
+import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig, ApiEvent} from "./schemas/schemas";
 
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
@@ -44,6 +46,28 @@ export class TykEntityProvider implements EntityProvider {
 
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
+  }
+
+  async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
+    // for importing all APIs from the Tyk Dashboard, for both GET and POST
+    // the POST request is to support webhook calls from Tyk Dashboard
+    router.get("/tyk/api/import-all", async (_req, res) => {
+      await this.importAllApis();
+      res.status(200).end();
+    });
+    router.post("/tyk/api/import-all", async (_req, res) => {
+      await this.importAllApis();
+      res.status(200).end();
+    });
+
+    await scheduler.scheduleTask({
+      id: 'run_tyk_entity_provider_refresh',
+      fn: async () => {
+        await this.importAllApis();
+      },
+      frequency: { minutes: 1 },
+      timeout: { minutes: 1 },
+    });
   }
 
   getProviderName(): string {
