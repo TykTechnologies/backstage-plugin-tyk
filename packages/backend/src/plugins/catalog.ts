@@ -49,6 +49,7 @@ curl --location 'localhost:7007/api/catalog/tyk/api/hook' \
       switch (apiEvent.event) {
         case "api_event.add":
         case "api_event.update":
+        case "api_event.delete":
             tykEntityProvider.importApi(
             apiEvent.data
           );
