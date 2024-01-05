@@ -81,7 +81,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
   private readonly config: Config;
   private connection?: EntityProviderConnection;
-  private dashboardConfigs: TykDashboardConfig[] = [];
+  private dashboardConfigs: TykDashboardConfig[];
 
   constructor(opts: { logger: Logger; env: string; config: Config }) {
     const {logger, env, config} = opts;
@@ -314,3 +314,10 @@ export class TykEntityProvider implements EntityProvider {
     });
   }
 }
+
+
+TODO:
+- switch all syncs to full, not delta
+- add sync interval as config value
+- add api delete event (and any others)
+- deal with tyk categories in api name, split to sanitise name, and use remaining as 'tags' (perhaps make this options with config)
