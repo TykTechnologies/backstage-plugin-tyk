@@ -3,7 +3,7 @@ import { ScaffolderEntitiesProcessor } from '@backstage/plugin-scaffolder-backen
 import { Router } from 'express';
 import { PluginEnvironment } from '../types';
 import { TykEntityProvider } from '../../../../plugins/backend-catalog-tyk-entitiy-provider/backend-catalog-tyk-entity-provider';
-import { ApiEvent } from '../../../../plugins/backend-catalog-tyk-entitiy-provider/backend-catalog-tyk-entity-provider';
+import { ApiEvent } from '../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/schemas';
 
 export default async function createPlugin(
   env: PluginEnvironment,
@@ -74,10 +74,11 @@ curl --location 'localhost:7007/api/catalog/tyk/api' \
 */
   router.post("/tyk/api", async (req, res) => {
     // to access body data, requests must use application/json Content-Type header
-    tykEntityProvider.importApi({ 
+    await tykEntityProvider.importApi({
       api_definition: {
         api_id: req.body.id,
-        name: req.body.name
+        name: req.body.name,
+        active: true,
       }
     });
     res.status(200).end();

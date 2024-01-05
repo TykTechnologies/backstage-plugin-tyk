@@ -15,7 +15,7 @@ import {Logger} from 'winston';
 import {Config} from '@backstage/config';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, APIListResponse, APIListResponseSchema} from "./schemas/schemas";
+import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig} from "./schemas/schemas";
 
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
@@ -52,13 +52,13 @@ export class TykEntityProvider implements EntityProvider {
 
   async getAllApis(dashboardConfig: TykDashboardConfig): Promise<API[]> {
     // fetches all APIs using p=-1 query param
-    const response = await fetch(`${dashboardConfig.host}/api/apis?p=-1`, 
+    const response = await fetch(`${dashboardConfig.host}/api/apis?p=-1`,
       { headers: { Authorization: `${dashboardConfig.token}` } }
     )
     let jsResponse = await response.json();
 
     const data: APIListResponse = jsResponse;
-    
+
     if (response.status != 200) {
       switch (response.status) {
         case 401:
@@ -75,7 +75,7 @@ export class TykEntityProvider implements EntityProvider {
         APIListResponseSchema.parse(data);
       }
     }
-    
+
     return data.apis;
   }
 
@@ -85,29 +85,26 @@ export class TykEntityProvider implements EntityProvider {
     for (const api of apis) {
       this.logger.info(`Generating API resource for ${api.api_definition.name}`);
 
+      // if there is no defaultOwner and the api definition config_data does not provide an owner,
+      // then we need to throw an error in the logs and skip this particular API definition
+
+      const owner: string = api.api_definition.config_data?.backstage?.owner ?? (defaultOwner || "");
+      if (owner === "") {
+        this.logger.error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
+        break;
+      }
+      const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (defaultLifecycle || "");
+      if (lifecycle === "") {
+        this.logger.error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
+        break;
+      }
+
       // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
       // this is to avoid collisions between identical APIs in different Tyk dashboards
-      const resourceName = `${kebabCase(namespace)}-${api.api_definition.api_id}`;
+      const resourceName: string = `${kebabCase(namespace)}-${api.api_definition.api_id}`;
+      let linkPathPart: string = "designer";
+      const apiEditUrl: string = `${dashboardHost}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
-      // it is posible that neither the api definition config data or the defaults are set, in which case the spec will fail schema validation
-      // this is intentional, as one of the two must be set, or both
-      let spec = {
-        type: 'openapi',
-        system: api.api_definition.config_data?.backstage?.system ?? defaultSystem,
-        owner: api.api_definition.config_data?.backstage?.owner ?? defaultOwner,
-        lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? defaultLifecycle,
-        definition: 'openapi: "3.0.0"',
-      };
-
-      let linkPathPart = "designer";
-      if (typeof api.oas == "object") {
-        spec.definition = yaml.dump(api.oas);
-        linkPathPart = "oas";
-      } else if (api.api_definition.graphql?.enabled === true) {
-        spec.definition = api.api_definition.graphql?.schema;
-        spec.type = 'graphql';
-      }
-      
       let authMechamism = (api: API): string => {
         if (api.api_definition.use_keyless === true) {
           return 'keyless';
@@ -131,10 +128,8 @@ export class TykEntityProvider implements EntityProvider {
         return 'unknown';
       }
 
-      const apiEditUrl = `${dashboardHost}/apis/${linkPathPart}/${api.api_definition.api_id}`;
-
       // this is a simplistic API CRD, for purpose of demonstration
-      // note: 
+      // note:
       //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
       //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
       let apiResource: ApiEntityV1alpha1 = {
@@ -169,8 +164,22 @@ export class TykEntityProvider implements EntityProvider {
           name: resourceName,
           title: api.api_definition.name,
         },
-        spec: spec,
+        spec: {
+          type: 'openapi',
+          system: api.api_definition.config_data?.backstage?.system ?? defaultSystem,
+          owner: api.api_definition.config_data?.backstage?.owner ?? (defaultOwner || ""),
+          lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? (defaultLifecycle || ""),
+          definition: 'openapi: "3.0.0"',
+        },
       };
+
+      if (typeof api.oas == "object") {
+        apiResource.spec.definition = yaml.dump(api.oas);
+        linkPathPart = "oas";
+      } else if (api.api_definition.graphql?.enabled === true) {
+        apiResource.spec.definition = api.api_definition.graphql?.schema;
+        apiResource.spec.type = 'graphql';
+      }
 
       // add custom labels, if any exist
       if (api.api_definition.config_data?.backstage?.labels) {
@@ -188,7 +197,7 @@ export class TykEntityProvider implements EntityProvider {
       //   3 - backstage labels have a limited character set, so we have to use a dot as separator
       if (api.user_owners && api.user_owners.length > 0) {
         apiResource.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
-      }      
+      }
       if (api.user_group_owners && api.user_group_owners.length > 0) {
         apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
       }
@@ -226,7 +235,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     this.logger.info(`Applying ${allApiResources.length} resources to catalog`);
-    
+
     await this.connection.applyMutation({
       type: 'full',
       entities: allApiResources.map((entity) => ({
