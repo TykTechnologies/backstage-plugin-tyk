@@ -122,9 +122,9 @@ catalog:
 
 tyk:
   dashboards:
-    development: 
-      host: http://localhost:3000
+    - host: http://localhost:3000
       token: ${TYKDASHBOARDAPITOKEN}
+      name: development
       defaults:
         owner: group:default/guests
         system: system:default/tyk
