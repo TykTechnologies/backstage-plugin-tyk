@@ -46,6 +46,7 @@ export const APIListResponseSchema = z.object({
 export const TykDashboardConfigSchema = z.object({
   host: z.string(),
   token: z.string(),
+  name: z.string(),
   defaults: z.object({
     owner: z.string().optional(),
     system: z.string().optional(),
