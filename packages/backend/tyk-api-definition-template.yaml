@@ -31,6 +31,14 @@ spec:
           title: Target URL
           type: string
           description: Upstream target URL
+        targetDashboard:
+          title: Target Dashboard
+          type: string
+          enum: # the names here must match the names of Tyk Dashboard configs in the app-config.yaml
+            - production
+            - staging
+            - development      
+          description: The Tyk Dashboard where the API Definition will be created
 
   # These steps are executed in the scaffolder backend, using data that we gathered
   # via the parameters above.
@@ -43,6 +51,7 @@ spec:
         name: ${{ parameters.name }}
         listenPath: ${{ parameters.listenPath }}
         targetUrl: ${{ parameters.targetUrl }}
+        targetDashboard: ${{ parameters.targetDashboard }}
 
   # Outputs are displayed to the user after a successful execution of the template.
   output:

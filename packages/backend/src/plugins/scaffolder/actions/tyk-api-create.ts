@@ -2,6 +2,8 @@ import {Config} from '@backstage/config';
 import {Logger} from 'winston';
 import {createTemplateAction} from '@backstage/plugin-scaffolder-node';
 import {z} from 'zod';
+import {API, TykDashboardConfig} from "../../../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/schemas";
+import {DashboardClient} from "../../../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/client/client";
 
 export const createTykApiAction = (config: Config, logger: Logger) => {
   return createTemplateAction({
@@ -11,49 +13,50 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
         name: z.string(),
         listenPath: z.string(),
         targetUrl: z.string(),
+        targetDashboard: z.string(),
       }),
     },
     async handler(ctx) {
-      logger.info('Running tyk:api:create template action')
-        
-      const dashboardApiToken = config.getString('tyk.dashboardApi.token')
-      const dashboardApiHost = config.getString('tyk.dashboardApi.host')
+      logger.info('Running tyk:api:create template action');
 
-      try {
-        const response = await fetch(dashboardApiHost + '/api/apis', {
-          method: 'POST',
-          headers: {
-            Authorization: dashboardApiToken
+      const dashboardConfigs: TykDashboardConfig[] = config.get("tyk.dashboards") as TykDashboardConfig[];
+      const dashboardClients = dashboardConfigs.map((dashboardConfig: TykDashboardConfig) => {
+        return new DashboardClient({log: logger, cfg: dashboardConfig});
+      });
+
+      const targetDashboard = dashboardClients.find((dashboard) => {
+        return dashboard.name == ctx.input.targetDashboard;
+      });
+        
+      if (!targetDashboard) {
+        throw new Error(`Selected Target Dashboard "${ctx.input.targetDashboard}" could not be found in configuration - check that a dashboard configuration with a matching name exists in the tyk.dashboards section of the app-config.yaml`);
+      }
+
+      // scaffold a basic API combining required fields with the form input data
+      const newApi: API = {
+        api_definition: {
+          name: ctx.input.name,
+          api_id: "",
+          use_keyless: true,
+          version_data: {
+            not_versioned: true,
+            versions: {}
           },
-          body: JSON.stringify({
-            api_definition: {
-              name: ctx.input.name,
-              use_keyless: true,
-              version_data: {
-                not_versioned: true,
-                versions: {}
-              },
-              proxy: {
-                listen_path: `/${ctx.input.listenPath}/`,
-                target_url: ctx.input.targetUrl,
-                strip_listen_path: true
-              },
-              active: true
-            }
-          })
-        })
-  
-        const data = await response.json();
-        if (response.status != 200) {
-          logger.error(`Error adding API ${ctx.input.name} to Tyk:` + data);
-          ctx.logger.error(`Error adding API ${ctx.input.name} to Tyk`);
-        } else {
-          logger.info(`Added API ${ctx.input.name} to Tyk`);
-          ctx.logger.info(`Added API ${ctx.input.name} to Tyk`);
-        }
-      } catch (error) {
-        logger.error(error);
-        ctx.logger.error(`Error adding API ${ctx.input.name} to Tyk`);
+          proxy: {
+            listen_path: `/${ctx.input.listenPath}/`,
+            target_url: ctx.input.targetUrl,
+            strip_listen_path: true
+          },          
+          active: true,
+        }          
+      };
+      
+      const createResult = await targetDashboard.createApi(newApi);
+
+      if (createResult) {
+        ctx.logger.info(`Successfully added API ${ctx.input.name} to Tyk`);
+      } else {
+        throw new Error(`Error adding API ${ctx.input.name} to Tyk`);
       }
     },
   });
