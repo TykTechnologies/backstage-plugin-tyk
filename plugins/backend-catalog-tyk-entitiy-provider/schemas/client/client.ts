@@ -17,7 +17,7 @@ export class DashboardClient {
 
     const res: Response = await fetch(`${this.config.host}/api/apis?p=-1`, {
       headers: {
-        Authorization: `${this.config.token}`
+        Authorization: this.config.token
       }
     });
 
