@@ -5,10 +5,12 @@ export class DashboardClient {
 
   private config: TykDashboardConfig;
   private log: Logger;
+  readonly name: string;
 
   constructor(props: {cfg: TykDashboardConfig, log: Logger}) {
     this.config = props.cfg;
     this.log = props.log;
+    this.name = props.cfg.name;
   }
 
   async getApiList(): Promise<API[]> {
@@ -38,6 +40,25 @@ export class DashboardClient {
     }
 
     return APIListResponseSchema.parse(data).apis;
+  }
+
+  async createApi(api: API): Promise<boolean> {
+    const response = await fetch(`${this.config.host}/api/apis`, {
+      method: 'POST',
+      headers: {
+        Authorization: this.config.token
+      },
+      body: JSON.stringify(api)
+    });
+
+    const data = await response.json();
+    if (response.status != 200) {
+      this.log.error(`Error adding API ${api.api_definition.name} to ${this.config.name}:` + data);
+      return false;
+    }
+
+    this.log.info(`Added API ${api.api_definition.name} to ${this.config.name}`);
+    return true;
   }
 
   getConfig(): TykDashboardConfig {

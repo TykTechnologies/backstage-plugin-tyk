@@ -24,6 +24,15 @@ export const APISchema = z.object({
     use_mutual_tls_auth: z.boolean().optional(),
     use_basic_auth: z.boolean().optional(),
     use_jwt: z.boolean().optional(),
+    version_data: z.object({
+      not_versioned: z.boolean().optional(),
+      versions: z.object({}).optional(),
+    }).optional(),
+    proxy: z.object({
+      listen_path: z.string().optional(),
+      target_url: z.string().optional(),
+      strip_listen_path: z.boolean().optional(),
+    }).optional(),
     graphql: z.object({
       enabled: z.boolean(),
       schema: z.string(),
