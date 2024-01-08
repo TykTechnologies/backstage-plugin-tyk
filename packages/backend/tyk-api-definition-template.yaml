@@ -34,7 +34,7 @@ spec:
         targetDashboard:
           title: Target Dashboard
           type: string
-          enum:
+          enum: # the names here must match the names of Tyk Dashboard configs in the app-config.yaml
             - production
             - staging
             - development      
