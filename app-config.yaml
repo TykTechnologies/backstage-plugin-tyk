@@ -121,6 +121,14 @@ catalog:
     #     - allow: [User, Group]
 
 tyk:
+  router:
+    enabled: true
+    paths:
+      prefix: "tyk"
+      importApis: "import"
+  scheduler:
+    enabled: true
+    frequency: 1
   dashboards:
     - host: http://localhost:3000
       token: ${TYKDASHBOARDAPITOKEN}
