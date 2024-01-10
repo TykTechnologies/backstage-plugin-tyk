@@ -123,9 +123,10 @@ catalog:
 tyk:
   router:
     enabled: true
+    syncOnInit: true
   scheduler:
-    enabled: false
-    # frequency: 1
+    enabled: true
+    frequency: 5
   dashboards:
     - host: http://localhost:3000
       token: ${TYKDASHBOARDAPITOKEN}
