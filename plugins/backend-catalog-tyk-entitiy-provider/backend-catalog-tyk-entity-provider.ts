@@ -13,23 +13,21 @@ import { Router } from 'express';
 import { PluginTaskScheduler } from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig} from "./schemas/schemas";
+import {API, TykDashboardConfig, TykConfig} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
 export class TykEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly logger: Logger;
-  private readonly config: Config;
   private connection?: EntityProviderConnection;
   private dashboardClients: DashboardClient[];
+  private readonly tykConfig: TykConfig;
+  private readonly defaultSchedulerFrequency = 5
 
   constructor(props: { logger: Logger; env: string; config: Config }) {
     this.logger = props.logger;
     this.env = props.env;
-    this.config = props.config;
-
-    let dashboardConfigs: TykDashboardConfig[] = this.config.get("tyk.dashboards") as TykDashboardConfig[]
-
-    this.dashboardClients = dashboardConfigs.map((dashboardConfig: TykDashboardConfig) => {
+    this.tykConfig = props.config.get("tyk")
+    this.dashboardClients = this.tykConfig.dashboards.map((dashboardConfig: TykDashboardConfig) => {
       return new DashboardClient({log: props.logger, cfg: dashboardConfig});
     })
   }
@@ -39,25 +37,50 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
-    // for importing all APIs from the Tyk Dashboard, for both GET and POST
-    // the POST request is to support webhook calls from Tyk Dashboard
-    router.get("/tyk/api/import-all", async (_req, res) => {
-      await this.importAllApis();
-      res.status(200).end();
-    });
-    router.post("/tyk/api/import-all", async (_req, res) => {
-      await this.importAllApis();
-      res.status(200).end();
-    });
+    if (!this.tykConfig.router.enabled && !this.tykConfig.scheduler.enabled) {
+      this.logger.warn("Tyk entity provider has no methods enabled for data collection - no data will be imported");
+      return;
+    }
 
-    await scheduler.scheduleTask({
-      id: 'run_tyk_entity_provider_refresh',
-      fn: async () => {
+    if (this.tykConfig.router.enabled) {
+      this.logger.info("Registering Tyk routes");
+      // for importing all APIs from the Tyk Dashboard, for both GET and POST
+      // the POST request is to support webhook calls from Tyk Dashboard
+      // these routes are accessible via the catalog api path /api/catalog/tyk/sync
+      router.get("/tyk/sync", async (_req, res) => {
         await this.importAllApis();
-      },
-      frequency: { minutes: 1 },
-      timeout: { minutes: 1 },
-    });
+        res.status(200).end();
+      });
+      router.post("/tyk/sync", async (_req, res) => {
+        await this.importAllApis();
+        res.status(200).end();
+      });
+
+      // sync on init is useful as it enables the system to populate data prior to any routes being called
+      // if the scheduler is enabled, then this is not necessary as the scheduler will pull the data on startup
+      if (this.tykConfig.router.syncOnInit) {
+        this.importAllApis();
+      }
+    }
+
+    if (this.tykConfig.scheduler.enabled) {
+      this.logger.info("Scheduling Tyk task");
+      
+      let frequency = this.tykConfig.scheduler.frequency;
+      if (frequency === undefined) {
+        this.logger.info(`Tyk scheduler frequency not configured, using default value of ${this.defaultSchedulerFrequency}`);
+        frequency = this.defaultSchedulerFrequency;
+      }
+      
+      await scheduler.scheduleTask({
+        id: 'run_tyk_entity_provider_refresh',
+        fn: async () => {
+          await this.importAllApis();
+        },
+        frequency: { minutes: frequency },
+        timeout: { minutes: 1 },
+      });        
+    }
   }
 
   getProviderName(): string {
@@ -190,7 +213,6 @@ export class TykEntityProvider implements EntityProvider {
     if (!this.connection) {
       throw new Error('Not initialized');
     }
-
     let allAPIs = this.dashboardClients.map((client: DashboardClient) => client.getApiList());
     let promiseResults = await Promise.allSettled(allAPIs);
 
