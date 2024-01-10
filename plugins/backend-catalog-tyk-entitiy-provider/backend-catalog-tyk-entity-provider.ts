@@ -46,6 +46,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.info("Registering Tyk routes");
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
       // the POST request is to support webhook calls from Tyk Dashboard
+      // these routes are accessible via the catalog api path /api/catalog/tyk/sync
       router.get("/tyk/sync", async (_req, res) => {
         await this.importAllApis();
         res.status(200).end();
