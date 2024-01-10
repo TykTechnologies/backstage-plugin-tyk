@@ -65,18 +65,14 @@ export const TykDashboardConfigSchema = z.object({
 
 export const TykConfigSchema = z.object({
   router: z.object({
-    enabled: z.boolean().default(false),
-    paths: z.object({
-      prefix: z.string().default("tyk"),
-      importApis: z.string().default("importApis"),
-    }),
+    enabled: z.boolean(),
   }),
   scheduler: z.object({
-    enabled: z.boolean().default(true),
-    frequency: z.number().default(30),
+    enabled: z.boolean(),
+    frequency: z.number().optional(),
   }),
   dashboards: z.array(TykDashboardConfigSchema),
-})
+});
 
 export type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
