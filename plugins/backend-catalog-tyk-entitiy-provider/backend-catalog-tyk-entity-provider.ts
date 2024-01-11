@@ -103,6 +103,22 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
     }
 
+    let resourceTitle = api.api_definition.name;
+    let resourceTags: string[] = [];
+    const tykCategoryPrefix = '#';
+    if (api.api_definition.name.includes(tykCategoryPrefix)) {
+      api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
+        switch (index) {
+          case 0:
+            resourceTitle = value.trim();
+            break;
+          default:
+            resourceTags.push(value.trim());
+            break;
+        }
+      });
+    }
+
     // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
     // this is to avoid collisions between identical APIs in different Tyk dashboards
     const resourceName: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
@@ -162,11 +178,11 @@ export class TykEntityProvider implements EntityProvider {
         labels: {
           'tyk.io/active': api.api_definition.active.toString(),
           'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(api.api_definition.name),
+          'tyk.io/name': kebabCase(resourceTitle),
           'tyk.io/authentication': authMechamism(api),
         },
         name: resourceName,
-        title: api.api_definition.name,
+        title: resourceTitle,
       },
       spec: {
         type: 'openapi',
