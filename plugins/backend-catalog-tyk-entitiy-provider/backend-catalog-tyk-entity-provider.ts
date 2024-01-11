@@ -180,6 +180,7 @@ export class TykEntityProvider implements EntityProvider {
           'tyk.io/name': kebabCase(resourceTitle),
           'tyk.io/authentication': authMechamism(api),
         },
+        tags: resourceTags,
         name: resourceName,
         title: resourceTitle,
       },
