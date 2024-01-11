@@ -88,21 +88,6 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   convertApiToResource(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
-    this.logger.info(`Generating API resource for ${api.api_definition.name}`);
-
-    // if there is no defaultOwner and the api definition config_data does not provide an owner,
-    // then we need to throw an error in the logs and skip this particular API definition
-    const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
-    if (owner === "") {
-      this.logger.error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
-      throw new Error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
-    }
-    const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
-    if (lifecycle === "") {
-      this.logger.error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
-      throw new Error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
-    }
-
     let resourceTitle = api.api_definition.name;
     let resourceTags: string[] = [];
     const tykCategoryPrefix = '#';
@@ -117,6 +102,21 @@ export class TykEntityProvider implements EntityProvider {
             break;
         }
       });
+    }
+
+    this.logger.info(`Generating API resource for ${resourceTitle}`);
+
+    // if there is no defaultOwner and the api definition config_data does not provide an owner,
+    // then we need to throw an error in the logs and skip this particular API definition
+    const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
+    if (owner === "") {
+      this.logger.error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
+      throw new Error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
+    }
+    const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
+    if (lifecycle === "") {
+      this.logger.error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
+      throw new Error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
     }
 
     // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
