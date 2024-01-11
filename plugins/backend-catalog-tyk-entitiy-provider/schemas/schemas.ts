@@ -71,6 +71,7 @@ export const TykConfigSchema = z.object({
     enabled: z.boolean(),
     frequency: z.number().optional(),
   }),
+  importCategoriesAsTags: z.boolean().optional(),
   dashboards: z.array(TykDashboardConfigSchema),
 });
 

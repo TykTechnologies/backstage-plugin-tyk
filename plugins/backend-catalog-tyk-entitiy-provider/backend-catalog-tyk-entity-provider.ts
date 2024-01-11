@@ -90,12 +90,13 @@ export class TykEntityProvider implements EntityProvider {
     let resourceTitle = api.api_definition.name;
     let resourceTags: string[] = [];
     const tykCategoryPrefix = '#';
+
     if (api.api_definition.name.includes(tykCategoryPrefix)) {
       api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
         switch (index) {
           case 0:
             resourceTitle = value.trim();
-            break;
+          break;
           default:
             resourceTags.push(value.trim());
             break;
@@ -180,7 +181,7 @@ export class TykEntityProvider implements EntityProvider {
           'tyk.io/name': kebabCase(resourceTitle),
           'tyk.io/authentication': authMechamism(api),
         },
-        tags: resourceTags,
+        tags: this.tykConfig.importCategoriesAsTags ? resourceTags : [],
         name: resourceName,
         title: resourceTitle,
       },

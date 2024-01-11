@@ -126,6 +126,7 @@ tyk:
   scheduler:
     enabled: true
     frequency: 5
+  importCategoriesAsTags: true
   dashboards:
     - host: http://localhost:3000
       token: ${TYKDASHBOARDAPITOKEN}
