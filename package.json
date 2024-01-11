@@ -52,6 +52,5 @@
     ]
   },
   "dependencies": {
-    "@internal/plugin-tyk-backend": "^0.1.0"
   }
 }
