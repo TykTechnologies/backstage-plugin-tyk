@@ -123,7 +123,6 @@ catalog:
 tyk:
   router:
     enabled: true
-    syncOnInit: true
   scheduler:
     enabled: true
     frequency: 5

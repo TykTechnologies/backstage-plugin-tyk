@@ -56,9 +56,8 @@ export class TykEntityProvider implements EntityProvider {
         res.status(200).end();
       });
 
-      // sync on init is useful as it enables the system to populate data prior to any routes being called
-      // if the scheduler is enabled, then this is not necessary as the scheduler will pull the data on startup
-      if (this.tykConfig.router.syncOnInit) {
+      // if the scheduler is not enabled, then perform an initial sync to populate data - otherwise there will be no data until an endpoint is called
+      if (!this.tykConfig.scheduler.enabled) {
         this.importAllApis();
       }
     }
