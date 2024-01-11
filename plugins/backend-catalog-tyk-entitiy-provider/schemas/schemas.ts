@@ -66,12 +66,12 @@ export const TykDashboardConfigSchema = z.object({
 export const TykConfigSchema = z.object({
   router: z.object({
     enabled: z.boolean(),
-    syncOnInit: z.boolean().optional(),
   }),
   scheduler: z.object({
     enabled: z.boolean(),
     frequency: z.number().optional(),
   }),
+  importCategoriesAsTags: z.boolean().optional(),
   dashboards: z.array(TykDashboardConfigSchema),
 });
 

@@ -56,9 +56,8 @@ export class TykEntityProvider implements EntityProvider {
         res.status(200).end();
       });
 
-      // sync on init is useful as it enables the system to populate data prior to any routes being called
-      // if the scheduler is enabled, then this is not necessary as the scheduler will pull the data on startup
-      if (this.tykConfig.router.syncOnInit) {
+      // if the scheduler is not enabled, then perform an initial sync to populate data - otherwise there will be no data until an endpoint is called
+      if (!this.tykConfig.scheduler.enabled) {
         this.importAllApis();
       }
     }
@@ -88,7 +87,24 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   convertApiToResource(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
-    this.logger.info(`Generating API resource for ${api.api_definition.name}`);
+    let resourceTitle = api.api_definition.name;
+    let resourceTags: string[] = [];
+    const tykCategoryPrefix = '#';
+
+    if (api.api_definition.name.includes(tykCategoryPrefix)) {
+      api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
+        switch (index) {
+          case 0:
+            resourceTitle = value.trim();
+          break;
+          default:
+            resourceTags.push(value.trim());
+            break;
+        }
+      });
+    }
+
+    this.logger.info(`Generating API resource for ${resourceTitle}`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
@@ -162,11 +178,12 @@ export class TykEntityProvider implements EntityProvider {
         labels: {
           'tyk.io/active': api.api_definition.active.toString(),
           'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(api.api_definition.name),
+          'tyk.io/name': kebabCase(resourceTitle),
           'tyk.io/authentication': authMechamism(api),
         },
+        tags: this.tykConfig.importCategoriesAsTags ? resourceTags : [],
         name: resourceName,
-        title: api.api_definition.name,
+        title: resourceTitle,
       },
       spec: {
         type: 'openapi',
