@@ -75,7 +75,7 @@ export const TykConfigSchema = z.object({
   dashboards: z.array(TykDashboardConfigSchema),
 });
 
-export const TykDashboardStatusSchema = z.object({
+export const DashboardSystemStatusSchema = z.object({
   nodes: z.array(
     z.object({
       id: z.string(),
@@ -86,6 +86,10 @@ export const TykDashboardStatusSchema = z.object({
   nodes_available: z.number(),
   nodes_remaining: z.number(),
   valid_until: z.number(),
+})
+
+export const DashboardSystemNodesResponseSchema = z.object({
+  data: DashboardSystemStatusSchema,
 });
 
 export type APIListResponse = z.infer<typeof APIListResponseSchema>;
@@ -93,4 +97,5 @@ export type API = z.infer<typeof APISchema>;
 export type ApiEvent = z.infer<typeof ApiEventSchema>;
 export type TykDashboardConfig = z.infer<typeof TykDashboardConfigSchema>;
 export type TykConfig = z.infer<typeof TykConfigSchema>;
-export type TykDashboardStatus = z.infer<typeof TykDashboardStatusSchema>;
+export type DashboardSystemStatus = z.infer<typeof DashboardSystemStatusSchema>;
+export type DashboardSystemNodesResponse = z.infer<typeof DashboardSystemNodesResponseSchema>;

@@ -1,4 +1,4 @@
-import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig} from "../schemas";
+import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig, DashboardSystemNodesResponse, DashboardSystemStatus, DashboardSystemStatusSchema} from "../schemas";
 import {Logger} from "winston";
 
 export class DashboardClient {
@@ -59,6 +59,29 @@ export class DashboardClient {
 
     this.log.info(`Added Tyk API ${api.api_definition.name} to ${this.config.name}`);
     return true;
+  }
+
+  async getDashboardStatus(): Promise<DashboardSystemStatus | undefined> {
+    const res: Response = await fetch(`${this.config.host}/api/system/nodes?p=-1`, {
+      headers: {
+        Authorization: this.config.token
+      }
+    });
+
+    const data: DashboardSystemNodesResponse = await res.json();
+
+    if (res.status != 200) {
+      switch (res.status) {
+        case 401:
+          this.log.error(`Authorisation failed with Tyk ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
+          return undefined;
+        default:
+          this.log.error(`Error fetching Tyk Dashboard Status from ${this.config.name}: ${res.status} ${res.statusText}`);
+          return undefined;
+      }
+    }
+
+    return DashboardSystemStatusSchema.parse(data.data);
   }
 
   getConfig(): TykDashboardConfig {
