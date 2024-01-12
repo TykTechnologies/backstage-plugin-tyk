@@ -26,16 +26,16 @@ export class DashboardClient {
     if (res.status != 200) {
       switch (res.status) {
         case 401:
-          this.log.error(`Authorisation failed with Tyk ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboard' app config settings`);
+          this.log.error(`Authorisation failed with Tyk ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
           return [];
         default:
-          this.log.error(`Error fetching API definitions from ${this.config.name}: ${res.status} ${res.statusText}`);
+          this.log.error(`Error fetching Tyk API definitions from ${this.config.name}: ${res.status} ${res.statusText}`);
           return [];
       }
     }
 
     if (data.apis == undefined) {
-      this.log.warn(`No API definitions found at ${this.config.name}.`);
+      this.log.warn(`No Tyk API definitions found at ${this.config.name}.`);
       return [];
     }
 
@@ -53,11 +53,11 @@ export class DashboardClient {
 
     const data = await response.json();
     if (response.status != 200) {
-      this.log.error(`Error adding API ${api.api_definition.name} to ${this.config.name}:` + data);
+      this.log.error(`Error adding Tyk API ${api.api_definition.name} to ${this.config.name}:` + data);
       return false;
     }
 
-    this.log.info(`Added API ${api.api_definition.name} to ${this.config.name}`);
+    this.log.info(`Added Tyk API ${api.api_definition.name} to ${this.config.name}`);
     return true;
   }
 
