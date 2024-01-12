@@ -61,27 +61,27 @@ export class DashboardClient {
     return true;
   }
 
-  async getDashboardStatus(): Promise<DashboardSystemStatus | undefined> {
+  async getDashboardStatus(): Promise<DashboardSystemStatus | null> {
     const res: Response = await fetch(`${this.config.host}/api/system/nodes?p=-1`, {
       headers: {
         Authorization: this.config.token
       }
     });
 
-    const data: DashboardSystemNodesResponse = await res.json();
-
     if (res.status != 200) {
       switch (res.status) {
         case 401:
           this.log.error(`Authorisation failed with Tyk ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
-          return undefined;
+          return null;
         default:
           this.log.error(`Error fetching Tyk Dashboard Status from ${this.config.name}: ${res.status} ${res.statusText}`);
-          return undefined;
+          return null;
       }
     }
 
-    return DashboardSystemStatusSchema.parse(data.data);
+    const responseData: DashboardSystemNodesResponse = await res.json();
+
+    return DashboardSystemStatusSchema.parse(responseData.data);
   }
 
   getConfig(): TykDashboardConfig {

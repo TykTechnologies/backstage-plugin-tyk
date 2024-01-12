@@ -81,6 +81,12 @@ export class TykEntityProvider implements EntityProvider {
         timeout: { minutes: 1 },
       });        
     }
+
+    /**
+     * @todo This is WIP, just here to trigger the data collection
+     * Needs to be appropriately refactored once more progress has been made
+     */
+    await this.importSystemData();
   }
 
   getProviderName(): string {
@@ -227,6 +233,30 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     return apiResource;
+  }
+
+  /**
+   * @todo Work in progress. 
+   * Currently only writes data to log, just to demonstrate that data is available.
+   * Still need to:
+   * - create dashboard resource
+   * - parse 'node' data and create gateway resources
+   * - reconcile and assign relationship data between system component and APIs
+   */
+  async importSystemData(): Promise<void> {
+    this.logger.info('Importing system data from Tyk');
+    
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
+    this.dashboardClients.forEach(async dashboardClient => {
+      const dashboardStatus = await dashboardClient.getDashboardStatus();
+      if (dashboardStatus != null) {
+        const licenceExpiry = new Date(dashboardStatus?.valid_until * 1000).toLocaleDateString();
+        this.logger.info(`Dashboard "${dashboardClient.name}" is managing ${dashboardStatus?.active_node_count} gateways, licence expires on ${licenceExpiry}`);          
+      }
+    });
   }
 
   async importAllApis(): Promise<void> {
