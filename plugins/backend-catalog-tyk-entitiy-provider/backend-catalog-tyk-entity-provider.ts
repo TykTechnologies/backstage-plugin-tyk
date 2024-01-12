@@ -28,6 +28,7 @@ export class TykEntityProvider implements EntityProvider {
     this.env = props.env;
     this.tykConfig = props.config.get("tyk")
     this.dashboardClients = this.tykConfig.dashboards.map((dashboardConfig: TykDashboardConfig) => {
+      this.logger.debug(`Loading Tyk Dashboard config - Name:${dashboardConfig.name}, Host:${dashboardConfig.host}, Token:${dashboardConfig.token.slice(0, 4)} (first 4 chars)`);
       return new DashboardClient({log: props.logger, cfg: dashboardConfig});
     })
   }
@@ -205,6 +206,7 @@ export class TykEntityProvider implements EntityProvider {
 
     // add custom labels, if any exist
     if (api.api_definition.config_data?.backstage?.labels) {
+      this.logger.debug(`${resourceTitle} contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
