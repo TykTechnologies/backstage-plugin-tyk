@@ -29,7 +29,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
       });
         
       if (!targetDashboard) {
-        throw new Error(`Selected Target Dashboard "${ctx.input.targetDashboard}" could not be found in configuration - check that a dashboard configuration with a matching name exists in the tyk.dashboards section of the app-config.yaml`);
+        throw new Error(`Selected Target Tyk Dashboard "${ctx.input.targetDashboard}" could not be found in configuration - check that a dashboard configuration with a matching name exists in the tyk.dashboards section of the app-config.yaml`);
       }
 
       // scaffold a basic API combining required fields with the form input data

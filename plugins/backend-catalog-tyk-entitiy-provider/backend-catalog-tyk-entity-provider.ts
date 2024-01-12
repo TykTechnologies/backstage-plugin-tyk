@@ -28,6 +28,7 @@ export class TykEntityProvider implements EntityProvider {
     this.env = props.env;
     this.tykConfig = props.config.get("tyk")
     this.dashboardClients = this.tykConfig.dashboards.map((dashboardConfig: TykDashboardConfig) => {
+      this.logger.debug(`Loading Tyk Dashboard config - Name:${dashboardConfig.name}, Host:${dashboardConfig.host}, Token:${dashboardConfig.token.slice(0, 4)} (first 4 chars)`);
       return new DashboardClient({log: props.logger, cfg: dashboardConfig});
     })
   }
@@ -92,6 +93,7 @@ export class TykEntityProvider implements EntityProvider {
     const tykCategoryPrefix = '#';
 
     if (api.api_definition.name.includes(tykCategoryPrefix)) {
+      this.logger.debug(`Performing category extraction for Tyk API "${api.api_definition.name}"`);
       api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
         switch (index) {
           case 0:
@@ -104,19 +106,19 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.info(`Generating API resource for ${resourceTitle}`);
+    this.logger.debug(`Generating Tyk API resource for "${resourceTitle}"`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
     const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
     if (owner === "") {
-      this.logger.error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
-      throw new Error(`No owner found for API ${api.api_definition.name} and no default owner configured, skipping`);
+      this.logger.error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
+      throw new Error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
     }
     const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
     if (lifecycle === "") {
-      this.logger.error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
-      throw new Error(`No lifecycle found for API ${api.api_definition.name} and no default lifecycle configured, skipping`);
+      this.logger.error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
+      throw new Error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
     }
 
     // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
@@ -204,6 +206,7 @@ export class TykEntityProvider implements EntityProvider {
 
     // add custom labels, if any exist
     if (api.api_definition.config_data?.backstage?.labels) {
+      this.logger.debug(`${resourceTitle} contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
@@ -227,6 +230,8 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllApis(): Promise<void> {
+    this.logger.info('Importing all APIs from Tyk');
+
     if (!this.connection) {
       throw new Error('Not initialized');
     }
@@ -242,7 +247,7 @@ export class TykEntityProvider implements EntityProvider {
       }
       return [];
     }).flat();
-    this.logger.info(`Applying ${allAPIResources.length} resources to catalog`);
+    this.logger.info(`Applying ${allAPIResources.length} Tyk API resources to catalog`);
 
     await this.connection.applyMutation({
       type: 'full',
@@ -253,20 +258,26 @@ export class TykEntityProvider implements EntityProvider {
     });
   }
 
-  // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+  /**
+   * @deprecated Currently not in use. Originally created to service incoming webhook payloads for single-dashboard setups, 
+   * but the move to multi-dashboard setups made it impractical to match incoming payloads to a particular dashboard configuration.
+   * Leaving functionality in place in case of future use case.
+   * @todo We are always taking the first dashboard config in order to just make it kind of work, but this is a bug -
+   * we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
+   * function signature.
+   */
   async importApi(api: API): Promise<void> {
-    this.logger.info('Importing single API');
+    this.logger.info('Importing single API from Tyk');
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
-    // reuse existing functionality, which was designed to accept an array of APIs
-    // TODO: we are always taking the first dashboard config in order to just make it kind of work, but this is a bug -
-    //    we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
-    //    function signature
     const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
+    this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
+    
+    // the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
     await this.connection.applyMutation({
       type: 'delta',
       added: apiResources.map((entity) => ({
