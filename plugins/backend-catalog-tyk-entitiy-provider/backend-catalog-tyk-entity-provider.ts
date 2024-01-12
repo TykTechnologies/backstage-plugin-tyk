@@ -92,6 +92,7 @@ export class TykEntityProvider implements EntityProvider {
     const tykCategoryPrefix = '#';
 
     if (api.api_definition.name.includes(tykCategoryPrefix)) {
+      this.logger.debug(`Performing category extraction for ${api.api_definition.name}`);
       api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
         switch (index) {
           case 0:
@@ -104,7 +105,7 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.info(`Generating API resource for ${resourceTitle}`);
+    this.logger.debug(`Generating API resource for ${resourceTitle}`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
@@ -227,6 +228,8 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllApis(): Promise<void> {
+    this.logger.info('Importing all APIs from Tyk');
+
     if (!this.connection) {
       throw new Error('Not initialized');
     }
@@ -255,7 +258,7 @@ export class TykEntityProvider implements EntityProvider {
 
   // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
   async importApi(api: API): Promise<void> {
-    this.logger.info('Importing single API');
+    this.logger.info('Importing single API from Tyk');
 
     if (!this.connection) {
       throw new Error('Not initialized');
@@ -266,6 +269,7 @@ export class TykEntityProvider implements EntityProvider {
     //    we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
     //    function signature
     const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
+    this.logger.info(`Applying ${apiResource.metadata.title} resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
     await this.connection.applyMutation({
       type: 'delta',
