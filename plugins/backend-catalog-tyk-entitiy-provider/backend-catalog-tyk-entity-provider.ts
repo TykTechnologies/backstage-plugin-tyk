@@ -93,7 +93,7 @@ export class TykEntityProvider implements EntityProvider {
     const tykCategoryPrefix = '#';
 
     if (api.api_definition.name.includes(tykCategoryPrefix)) {
-      this.logger.debug(`Performing category extraction for "${api.api_definition.name}"`);
+      this.logger.debug(`Performing category extraction for Tyk API "${api.api_definition.name}"`);
       api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
         switch (index) {
           case 0:
@@ -106,19 +106,19 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.debug(`Generating API resource for "${resourceTitle}"`);
+    this.logger.debug(`Generating Tyk API resource for "${resourceTitle}"`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
     const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
     if (owner === "") {
-      this.logger.error(`No owner found for API "${api.api_definition.name}" and no default owner configured, skipping`);
-      throw new Error(`No owner found for API "${api.api_definition.name}" and no default owner configured, skipping`);
+      this.logger.error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
+      throw new Error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
     }
     const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
     if (lifecycle === "") {
-      this.logger.error(`No lifecycle found for API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
-      throw new Error(`No lifecycle found for API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
+      this.logger.error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
+      throw new Error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
     }
 
     // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
@@ -247,7 +247,7 @@ export class TykEntityProvider implements EntityProvider {
       }
       return [];
     }).flat();
-    this.logger.info(`Applying ${allAPIResources.length} resources to catalog`);
+    this.logger.info(`Applying ${allAPIResources.length} Tyk API resources to catalog`);
 
     await this.connection.applyMutation({
       type: 'full',
@@ -274,7 +274,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
-    this.logger.info(`Applying ${apiResource.metadata.title} resource to catalog`);
+    this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
     
     // the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
