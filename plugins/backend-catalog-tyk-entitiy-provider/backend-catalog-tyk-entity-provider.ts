@@ -256,7 +256,14 @@ export class TykEntityProvider implements EntityProvider {
     });
   }
 
-  // NOTE: the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
+  /**
+   * @deprecated Currently not in use. Originally created to service incoming webhook payloads for single-dashboard setups, 
+   * but the move to multi-dashboard setups made it impractical to match incoming payloads to a particular dashboard configuration.
+   * Leaving functionality in place in case of future use case.
+   * @todo We are always taking the first dashboard config in order to just make it kind of work, but this is a bug -
+   * we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
+   * function signature.
+   */
   async importApi(api: API): Promise<void> {
     this.logger.info('Importing single API from Tyk');
 
@@ -264,13 +271,11 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    // reuse existing functionality, which was designed to accept an array of APIs
-    // TODO: we are always taking the first dashboard config in order to just make it kind of work, but this is a bug -
-    //    we should be be able to determine which dashboard config to use, perhaps by including it in the importApi
-    //    function signature
     const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
     this.logger.info(`Applying ${apiResource.metadata.title} resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
+    
+    // the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
     await this.connection.applyMutation({
       type: 'delta',
       added: apiResources.map((entity) => ({
