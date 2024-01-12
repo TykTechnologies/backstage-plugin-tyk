@@ -1,4 +1,11 @@
-import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig} from "../schemas";
+import {
+  API,
+  APIListResponse,
+  APIListResponseSchema,
+  ApiSystemNodes,
+  TykDashboardConfig,
+  ApiSystemNodeIdHostname
+} from "../schemas";
 import {Logger} from "winston";
 
 export class DashboardClient {
@@ -63,5 +70,35 @@ export class DashboardClient {
 
   getConfig(): TykDashboardConfig {
     return this.config;
+  }
+
+  async getNodes(): Promise<ApiSystemNodes> {
+    const res: Response = await fetch(`${this.config.host}/api/system/nodes`, {
+      method: 'GET',
+      headers: {
+        Authorization: this.config.token
+      },
+    });
+    const data: ApiSystemNodes = await res.json();
+    if (res.status != 200) {
+      this.log.error(`Error fetching Tyk nodes from ${this.config.name}: ${res.status} ${res.statusText}`);
+    }
+
+    return data;
+  }
+
+  async getNodeConfig(nodeId: string, hostname: string): Promise<ApiSystemNodeIdHostname> {
+    const res: Response = await fetch(`${this.config.host}/api/system/node/${nodeId}/${hostname}`, {
+      method: 'GET',
+      headers: {
+        Authorization: this.config.token
+      },
+    });
+    const data: ApiSystemNodeIdHostname = await res.json();
+    if (res.status != 200) {
+      this.log.error(`Error fetching Tyk nodes from ${this.config.name}: ${res.status} ${res.statusText}`);
+    }
+
+    return data;
   }
 }

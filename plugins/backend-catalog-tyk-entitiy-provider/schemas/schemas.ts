@@ -1,5 +1,30 @@
 import * as z from 'zod';
 
+// /api/system/nodes
+export type ApiSystemNodes = {
+  data: {
+    nodes: {
+      id: string
+      hostname: string
+    }[]
+    active_node_count: number
+    nodes_available: number
+    nodes_remaining: number
+    valid_until: number
+  }
+}
+
+// /api/system/node/:node_id/:hostname
+export type ApiSystemNodeIdHostname = {
+  data: {
+    db_app_conf_options: {
+      connection_string: string
+      node_is_segmented: boolean
+      tags: string[]
+    }
+  }
+}
+
 export const APISchema = z.object({
   api_definition: z.object({
     api_id: z.string(),
