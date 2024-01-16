@@ -247,6 +247,12 @@ export class TykEntityProvider implements EntityProvider {
       }
       return [];
     }).flat();
+
+    if (!allAPIResources || allAPIResources.length == 0) {
+      this.logger.info('No Tyk resources to apply');
+      return;
+    }
+
     this.logger.info(`Applying ${allAPIResources.length} Tyk API resources to catalog`);
 
     await this.connection.applyMutation({
