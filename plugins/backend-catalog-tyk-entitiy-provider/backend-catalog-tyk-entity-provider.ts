@@ -8,7 +8,6 @@ import {
 } from '@backstage/catalog-model'
 import {EntityProvider, EntityProviderConnection,} from '@backstage/plugin-catalog-node';
 import {Logger} from 'winston';
-import {Config} from '@backstage/config';
 import { Router } from 'express';
 import { PluginTaskScheduler } from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
@@ -16,21 +15,23 @@ import yaml from 'js-yaml';
 import {API, TykDashboardConfig, TykConfig} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
 export class TykEntityProvider implements EntityProvider {
-  private readonly env: string;
   private readonly logger: Logger;
   private connection?: EntityProviderConnection;
-  private dashboardClients: DashboardClient[];
+  private dashboardClient: DashboardClient;
   private readonly tykConfig: TykConfig;
+  private readonly dashboardName: string;
   private readonly defaultSchedulerFrequency = 5
 
-  constructor(props: { logger: Logger; env: string; config: Config }) {
+  constructor(props: { logger: Logger; config: TykConfig, dashboardName: string }) {
     this.logger = props.logger;
-    this.env = props.env;
-    this.tykConfig = props.config.get("tyk")
-    this.dashboardClients = this.tykConfig.dashboards.map((dashboardConfig: TykDashboardConfig) => {
-      this.logger.debug(`Loading Tyk Dashboard config - Name:${dashboardConfig.name}, Host:${dashboardConfig.host}, Token:${dashboardConfig.token.slice(0, 4)} (first 4 chars)`);
-      return new DashboardClient({log: props.logger, cfg: dashboardConfig});
-    })
+    this.tykConfig = props.config;
+    this.dashboardName = props.dashboardName;
+
+    let dashboardConfig = this.tykConfig.dashboards.find((dashboard) => dashboard.name == props.dashboardName);
+    if (dashboardConfig == undefined) {
+      throw new Error(`No Tyk dashboard configuration found for ${props.dashboardName}`)
+    }
+    this.dashboardClient = new DashboardClient({log: props.logger, cfg: dashboardConfig!});
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -38,6 +39,8 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
+    this.logger.info(`Initializing Tyk entity provider for ${this.dashboardName} environment`);
+
     if (!this.tykConfig.router.enabled && !this.tykConfig.scheduler.enabled) {
       this.logger.warn("Tyk entity provider has no methods enabled for data collection - no data will be imported");
       return;
@@ -48,11 +51,11 @@ export class TykEntityProvider implements EntityProvider {
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
       // the POST request is to support webhook calls from Tyk Dashboard
       // these routes are accessible via the catalog api path /api/catalog/tyk/sync
-      router.get("/tyk/sync", async (_req, res) => {
+      router.get(`/tyk/${this.dashboardName}/sync`, async (_req, res) => {
         await this.importAllApis();
         res.status(200).end();
       });
-      router.post("/tyk/sync", async (_req, res) => {
+      router.post(`/tyk/${this.dashboardName}/sync`, async (_req, res) => {
         await this.importAllApis();
         res.status(200).end();
       });
@@ -84,7 +87,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   getProviderName(): string {
-    return `tyk-entity-provider-${this.env}`;
+    return `tyk-entity-provider-${this.dashboardName}`;
   }
 
   convertApiToResource(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
@@ -230,23 +233,16 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllApis(): Promise<void> {
-    this.logger.info('Importing all APIs from Tyk');
+    this.logger.info(`Importing APIs from ${this.dashboardName}`);
 
     if (!this.connection) {
       throw new Error('Not initialized');
     }
-    let allAPIs = this.dashboardClients.map((client: DashboardClient) => client.getApiList());
-    let promiseResults = await Promise.allSettled(allAPIs);
+    let allAPIs: API[] = await this.dashboardClient.getApiList();
 
-    let allAPIResources: ApiEntityV1alpha1[] = promiseResults.map((promiseResult: PromiseSettledResult<API[]>, index: number) => {
-      if (promiseResult.status === "fulfilled") {
-
-        return promiseResult.value.map((api: API) => {
-          return this.convertApiToResource(api, this.dashboardClients[index].getConfig());
-        });
-      }
-      return [];
-    }).flat();
+    let allAPIResources: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
+      return this.convertApiToResource(api, this.dashboardClient.getConfig());
+    });
 
     if (!allAPIResources || allAPIResources.length == 0) {
       this.logger.info('No Tyk resources to apply');
@@ -257,7 +253,7 @@ export class TykEntityProvider implements EntityProvider {
 
     await this.connection.applyMutation({
       type: 'full',
-      entities: allAPIResources.map((entity) => ({
+      entities: allAPIResources.map((entity: ApiEntityV1alpha1): {entity: any, locationKey: any} => ({
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
@@ -279,7 +275,7 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClients[0].getConfig());
+    const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClient.getConfig());
     this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
     
