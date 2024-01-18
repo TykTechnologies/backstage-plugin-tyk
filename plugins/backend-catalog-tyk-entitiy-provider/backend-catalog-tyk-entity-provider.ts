@@ -177,7 +177,7 @@ export class TykEntityProvider implements EntityProvider {
     }
   }
 
-  convertApiToResource(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
+  toApiEntity(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
     let resourceTitle = api.api_definition.name;
     let resourceTags: string[] = [];
     const tykCategoryPrefix = '#';
@@ -333,7 +333,7 @@ export class TykEntityProvider implements EntityProvider {
     // discover the apis
     const apis: API[] = await this.dashboardClient.getApiList();
     const apiEntities: ApiEntityV1alpha1[] = apis.map((api: API) => {
-      return this.convertApiToResource(api, this.dashboardClient.getConfig());
+      return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
     deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
       entity: entity,
@@ -379,7 +379,7 @@ export class TykEntityProvider implements EntityProvider {
     let allAPIs: API[] = await this.dashboardClient.getApiList();
 
     let allAPIResources: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
-      return this.convertApiToResource(api, this.dashboardClient.getConfig());
+      return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
 
     if (!allAPIResources || allAPIResources.length == 0) {
@@ -413,7 +413,7 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    const apiResource: ApiEntityV1alpha1 = this.convertApiToResource(api, this.dashboardClient.getConfig());
+    const apiResource: ApiEntityV1alpha1 = this.toApiEntity(api, this.dashboardClient.getConfig());
     this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
     let apiResources: ApiEntityV1alpha1[] = [apiResource];
 
