@@ -178,8 +178,9 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   toApiEntity(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
-    let resourceTitle = api.api_definition.name;
-    let resourceTags: string[] = [];
+    let title: string = api.api_definition.name;
+    let tags: string[] = [];
+
     const tykCategoryPrefix = '#';
 
     if (api.api_definition.name.includes(tykCategoryPrefix)) {
@@ -187,16 +188,16 @@ export class TykEntityProvider implements EntityProvider {
       api.api_definition.name.split(tykCategoryPrefix).forEach((value, index) => {
         switch (index) {
           case 0:
-            resourceTitle = value.trim();
+            title = value.trim();
             break;
           default:
-            resourceTags.push(value.trim());
+            tags.push(value.trim());
             break;
         }
       });
     }
 
-    this.logger.debug(`Generating Tyk API resource for "${resourceTitle}"`);
+    this.logger.debug(`Generating Tyk API entity for "${title}"`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
@@ -211,9 +212,9 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
     }
 
-    // resource name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
+    // name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
     // this is to avoid collisions between identical APIs in different Tyk dashboards
-    const resourceName: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
+    const name: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
     let linkPathPart: string = "designer";
     const apiEditUrl: string = `${config.host}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
@@ -244,7 +245,7 @@ export class TykEntityProvider implements EntityProvider {
     // note:
     //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
     //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
-    let apiResource: ApiEntityV1alpha1 = {
+    let apiEntity: ApiEntityV1alpha1 = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'API',
       metadata: {
@@ -270,12 +271,12 @@ export class TykEntityProvider implements EntityProvider {
         labels: {
           'tyk.io/active': api.api_definition.active.toString(),
           'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(resourceTitle),
+          'tyk.io/name': kebabCase(title),
           'tyk.io/authentication': authMechamism(api),
         },
-        tags: this.tykConfig.importCategoriesAsTags ? resourceTags : [],
-        name: resourceName,
-        title: resourceTitle,
+        tags: this.tykConfig.importCategoriesAsTags ? tags : [],
+        name: name,
+        title: title,
       },
       spec: {
         type: 'openapi',
@@ -287,20 +288,20 @@ export class TykEntityProvider implements EntityProvider {
     };
 
     if (typeof api.oas == "object") {
-      apiResource.spec.definition = yaml.dump(api.oas);
+      apiEntity.spec.definition = yaml.dump(api.oas);
       linkPathPart = "oas";
     } else if (api.api_definition.graphql?.enabled === true) {
-      apiResource.spec.definition = api.api_definition.graphql?.schema;
-      apiResource.spec.type = 'graphql';
+      apiEntity.spec.definition = api.api_definition.graphql?.schema;
+      apiEntity.spec.type = 'graphql';
     }
 
     // add custom labels, if any exist
     if (api.api_definition.config_data?.backstage?.labels) {
-      this.logger.debug(`${resourceTitle} contains Backstage label data`);
+      this.logger.debug(`${title} contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
-        apiResource.metadata.labels!["tyk.io/" + label.key] = label.value;
+        apiEntity.metadata.labels!["tyk.io/" + label.key] = label.value;
       }
     }
 
@@ -310,13 +311,13 @@ export class TykEntityProvider implements EntityProvider {
     //   2 - backstage labels are limited to 64 characters, so there is potential to exceed that amount, and if that happens then the entity will fail validation and won't be imported
     //   3 - backstage labels have a limited character set, so we have to use a dot as separator
     if (api.user_owners && api.user_owners.length > 0) {
-      apiResource.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
+      apiEntity.metadata.labels!["tyk.io/user-owners"] = api.user_owners.join('.');
     }
     if (api.user_group_owners && api.user_group_owners.length > 0) {
-      apiResource.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
+      apiEntity.metadata.labels!["tyk.io/user-group-owners"] = api.user_group_owners.join('.');
     }
 
-    return apiResource;
+    return apiEntity;
   }
 
   async discoverAllEntities(): Promise<DeferredEntity[]> {
@@ -378,20 +379,20 @@ export class TykEntityProvider implements EntityProvider {
     }
     let allAPIs: API[] = await this.dashboardClient.getApiList();
 
-    let allAPIResources: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
+    let allApiEntities: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
       return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
 
-    if (!allAPIResources || allAPIResources.length == 0) {
-      this.logger.info('No Tyk resources to apply');
+    if (!allApiEntities || allApiEntities.length == 0) {
+      this.logger.info('No Tyk api entities to apply');
       return;
     }
 
-    this.logger.info(`Applying ${allAPIResources.length} Tyk API resources to catalog`);
+    this.logger.info(`Applying ${allApiEntities.length} Tyk API entities to catalog`);
 
     await this.connection.applyMutation({
       type: 'full',
-      entities: allAPIResources.map((entity: ApiEntityV1alpha1): { entity: any, locationKey: any } => ({
+      entities: allApiEntities.map((entity: ApiEntityV1alpha1): { entity: any, locationKey: any } => ({
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
@@ -413,14 +414,14 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
-    const apiResource: ApiEntityV1alpha1 = this.toApiEntity(api, this.dashboardClient.getConfig());
-    this.logger.info(`Applying "${apiResource.metadata.title}" Tyk API resource to catalog`);
-    let apiResources: ApiEntityV1alpha1[] = [apiResource];
+    const apiEntity: ApiEntityV1alpha1 = this.toApiEntity(api, this.dashboardClient.getConfig());
+    this.logger.info(`Applying "${apiEntity.metadata.title}" Tyk API entity to catalog`);
+    let apiEntities: ApiEntityV1alpha1[] = [apiEntity];
 
     // the mutation in this function uses a 'delta' approach, so will be overwritten by mutations that use the 'full' approach
     await this.connection.applyMutation({
       type: 'delta',
-      added: apiResources.map((entity) => ({
+      added: apiEntities.map((entity) => ({
         entity,
         locationKey: `${this.getProviderName()}`,
       })),
