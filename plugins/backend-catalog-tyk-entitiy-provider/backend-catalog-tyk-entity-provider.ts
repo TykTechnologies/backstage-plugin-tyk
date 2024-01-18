@@ -126,32 +126,25 @@ export class TykEntityProvider implements EntityProvider {
     };
   }
 
-  toGatewayComponentEntity(apiEntities: ApiEntityV1alpha1[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
+  toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
     this.logger.info(`Gateway ${gateway.id}, segmented ${gateway.segmented} with tags ${JSON.stringify(gateway.tags)}`);
-    const provides: string[] = apiEntities.map((api: ApiEntityV1alpha1) => {
 
-      // if the gateway is not segmented, then the api is provided
-      // TODO: this looks like a bug with the dashboard API, because it always returns false for node_is_segmented :(
-      // fallback to just relying on the tags
-      // if (!gateway.segmented) {
-      //   return `${api.metadata.name}`;
-      // }
-      if (gateway.tags.length == 0) {
-        return `${api.metadata.name}`;
+    const provides: string[] = apis.map((api: API) => {
+      const apiEntityName = `${kebabCase(this.dashboardName)}-${api.api_definition.api_id}`;
+      if (!gateway.segmented) {
+        return apiEntityName;
       }
 
       // if the gateway is segmented, then the api is provided if the api has a tag that matches a tag on the gateway
       for (const tag of gateway.tags) {
-        let apiDefTags = api.metadata.labels!['tyk.io/segment_tags'].split('-_.');
-
-        if (apiDefTags.includes(tag)) {
-          return `${api.metadata.name}`;
+        if (api.api_definition.tags.includes(tag)) {
+          return apiEntityName;
         }
       }
       return 'REMOVEME';
     }).filter((value: string) => value != 'REMOVEME');
 
-    this.logger.warn(`Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
+    this.logger.info(`Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
 
     return {
       apiVersion: 'backstage.io/v1alpha1',
@@ -279,7 +272,6 @@ export class TykEntityProvider implements EntityProvider {
           'tyk.io/apiId': api.api_definition.api_id,
           'tyk.io/name': kebabCase(resourceTitle),
           'tyk.io/authentication': authMechamism(api),
-          'tyk.io/segment_tags': api.api_definition.tags.join('-_.'),
         },
         tags: this.tykConfig.importCategoriesAsTags ? resourceTags : [],
         name: resourceName,
@@ -355,13 +347,12 @@ export class TykEntityProvider implements EntityProvider {
       enrichedGateways.push({
         id: node.id,
         hostname: node.hostname,
-        // TODO: this looks like a bug with the dashboard API, because it always returns false for node_is_segmented :(
         segmented: gateway.data.db_app_conf_options.node_is_segmented,
         tags: gateway.data.db_app_conf_options.tags,
       });
     }
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
-      return this.toGatewayComponentEntity(apiEntities, gateway);
+      return this.toGatewayComponentEntity(apis, gateway);
     });
     deferredEntities.push(...gatewayComponentEntities.map((entity: ComponentEntityV1alpha1): DeferredEntity => ({
       entity: entity,
