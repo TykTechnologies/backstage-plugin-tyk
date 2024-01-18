@@ -4,7 +4,7 @@ import {
   ANNOTATION_ORIGIN_LOCATION,
   ANNOTATION_SOURCE_LOCATION,
   ANNOTATION_VIEW_URL,
-  ApiEntityV1alpha1, ComponentEntityV1alpha1,
+  ApiEntityV1alpha1, ComponentEntityV1alpha1, SystemEntityV1alpha1
 } from '@backstage/catalog-model'
 import {DeferredEntity, EntityProvider, EntityProviderConnection,} from '@backstage/plugin-catalog-node';
 import {Logger} from 'winston';
@@ -12,7 +12,7 @@ import {Router} from 'express';
 import {PluginTaskScheduler} from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, TykConfig, enrichedGateway, GatewayResponse} from "./schemas/schemas";
+import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
 
 export class TykEntityProvider implements EntityProvider {
@@ -90,12 +90,32 @@ export class TykEntityProvider implements EntityProvider {
     }
   }
 
+  toTykSystemEntity(): SystemEntityV1alpha1 {
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'System',
+      metadata: {
+        name: 'tyk',
+        description: 'Tyk',
+        annotations: {
+          [ANNOTATION_LOCATION]: `url:${this.dashboardConfig?.host}`,
+          [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardConfig?.host}`,
+        },
+      },
+      spec: {
+        owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
+        domain: 'tyk',
+      }
+    };
+  }
+
   toDasboardComponentEntity(): ComponentEntityV1alpha1 {
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
         name: `tyk-dashboard-${this.dashboardName}`,
+        title: `Tyk Dashboard: ${this.dashboardName}`,
         description: 'Tyk Dashboard',
         annotations: {
           [ANNOTATION_LOCATION]: `url:${this.dashboardConfig?.host}`,
@@ -151,8 +171,8 @@ export class TykEntityProvider implements EntityProvider {
       kind: 'Component',
       metadata: {
         name: `tyk-gateway-${this.dashboardName}-${gateway.id}`,
-        title: `Tyk Gateway ${gateway.id}`,
-        description: `Tyk Gateway ${this.dashboardName} ${gateway.id}`,
+        title: `Tyk Gateway: ${gateway.hostname}`,
+        description: `Tyk Gateway ${this.dashboardName} ${gateway.hostname} ${gateway.id}`,
         // links: [
         //   {
         //     url: `http://${node.hostname}`,
