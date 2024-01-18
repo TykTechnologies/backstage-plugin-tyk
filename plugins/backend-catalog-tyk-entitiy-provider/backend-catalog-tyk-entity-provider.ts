@@ -149,20 +149,20 @@ export class TykEntityProvider implements EntityProvider {
   toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
     this.logger.info(`Gateway ${gateway.id}, segmented ${gateway.segmented} with tags ${JSON.stringify(gateway.tags)}`);
 
-    const provides: string[] = apis.map((api: API) => {
+    const provides: string[] = apis.reduce((collector: string[], api: API) => {
       const apiEntityName = `${kebabCase(this.dashboardName)}-${api.api_definition.api_id}`;
       if (!gateway.segmented) {
-        return apiEntityName;
+        return [...collector, apiEntityName];
       }
 
       // if the gateway is segmented, then the api is provided if the api has a tag that matches a tag on the gateway
       for (const tag of gateway.tags) {
         if (api.api_definition.tags.includes(tag)) {
-          return apiEntityName;
+          return [...collector, apiEntityName];
         }
       }
-      return 'REMOVEME';
-    }).filter((value: string) => value != 'REMOVEME');
+      return collector;
+    }, []);
 
     this.logger.info(`Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
 
