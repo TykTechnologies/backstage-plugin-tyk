@@ -5,6 +5,7 @@ export const APISchema = z.object({
     api_id: z.string(),
     name: z.string(),
     active: z.boolean(),
+    tags: z.array(z.string()),
     config_data: z.object({
       backstage: z.object({
         owner: z.string().optional(),
