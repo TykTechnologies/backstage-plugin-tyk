@@ -12,7 +12,7 @@ import {Router} from 'express';
 import {PluginTaskScheduler} from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
+import {API, TykDashboardConfig, TykConfig, enrichedGateway, GatewayResponse} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
 
 export class TykEntityProvider implements EntityProvider {
@@ -344,13 +344,18 @@ export class TykEntityProvider implements EntityProvider {
     const enrichedGateways: enrichedGateway[] = [];
     const systemNodes = await this.dashboardClient.getSystemNodes();
     for (const node of systemNodes.data.nodes) {
-      let gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
-      enrichedGateways.push({
-        id: node.id,
-        hostname: node.hostname,
-        segmented: gateway.data.db_app_conf_options.node_is_segmented,
-        tags: gateway.data.db_app_conf_options.tags,
-      });
+      try {
+        let gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
+
+        enrichedGateways.push({
+          id: node.id,
+          hostname: node.hostname,
+          segmented: gateway.data.db_app_conf_options.node_is_segmented,
+          tags: gateway.data.db_app_conf_options.tags,
+        });
+      } catch (error) {
+        this.logger.error(error);
+      }
     }
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
       return this.toGatewayComponentEntity(apis, gateway);

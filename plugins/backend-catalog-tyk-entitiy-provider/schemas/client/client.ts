@@ -92,7 +92,6 @@ export class DashboardClient {
 
     const data: GatewayResponse = await res.json();
     if (res.status != 200) {
-      this.log.error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
       throw new Error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
     }
 
