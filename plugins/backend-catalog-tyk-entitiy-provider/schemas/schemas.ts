@@ -87,7 +87,7 @@ export const SystemNodesSchema = z.object({
   nodes_available: z.number(),
   nodes_remaining: z.number(),
   valid_until: z.number(),
-})
+});
 
 export const DashboardSystemNodesResponseSchema = z.object({
   data: SystemNodesSchema,
@@ -107,7 +107,7 @@ export type enrichedGateway = {
   hostname: string
   segmented: boolean
   tags: string[]
-}
+};
 
 export type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
