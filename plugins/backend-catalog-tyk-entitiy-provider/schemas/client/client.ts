@@ -54,11 +54,6 @@ export class DashboardClient {
       return [];
     }
 
-    if (data.apis == undefined || data.apis.length == 0) {
-      this.log.warn(`No Tyk API definitions found at ${this.config.name} Dashboard`);
-      return [];
-    }
-
     return APIListResponseSchema.parse(data).apis;
   }
 

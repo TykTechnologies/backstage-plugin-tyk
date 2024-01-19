@@ -372,6 +372,10 @@ export class TykEntityProvider implements EntityProvider {
       return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
 
+    if (apiEntities == undefined || apiEntities.length == 0) {
+      this.logger.warn(`No Tyk API definitions found at ${this.dashboardName} Dashboard`);
+    }
+
     deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
       entity: entity,
       locationKey: `${this.getProviderName}`,
@@ -392,6 +396,10 @@ export class TykEntityProvider implements EntityProvider {
         segmented: gateway.data.db_app_conf_options.node_is_segmented,
         tags: gateway.data.db_app_conf_options.tags,
       });
+    }
+
+    if (enrichedGateways == undefined || enrichedGateways.length == 0) {
+      this.logger.warn(`No Tyk Gateways found at ${this.dashboardName} Dashboard`);
     }
 
     this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
