@@ -41,7 +41,6 @@ export class DashboardClient {
   }
 
   async getApiList(): Promise<API[]> {
-
     const res: Response = await fetch(`${this.config.host}/api/apis?p=-1`, {
       headers: {
         Authorization: this.config.token
@@ -51,14 +50,8 @@ export class DashboardClient {
     const data: APIListResponse = await res.json();
 
     if (res.status != 200) {
-      switch (res.status) {
-        case 401:
-          this.log.error(`Authorisation failed with Tyk Dashboard ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
-          return [];
-        default:
-          this.log.error(`Error fetching Tyk API definitions from ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
-          return [];
-      }
+      this.log.error(`Error fetching Tyk API definitions from ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
+      return [];
     }
 
     if (data.apis == undefined || data.apis.length == 0) {

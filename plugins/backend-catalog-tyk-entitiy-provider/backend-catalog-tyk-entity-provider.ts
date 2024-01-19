@@ -351,7 +351,8 @@ export class TykEntityProvider implements EntityProvider {
         return [];
       }  
     } catch (error) {
-      this.logger.error(`Error discovering Tyk ${this.dashboardName} Dashboard`, error);
+      this.logger.error(`Error discovering Tyk ${this.dashboardName} Dashboard:`, error);
+      return [];
     }
 
     const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDasboardComponentEntity();
@@ -360,7 +361,7 @@ export class TykEntityProvider implements EntityProvider {
       locationKey: `${this.getProviderName}`,
     });
 
-    // discover the apis
+    // discover the APIs
     let apis: API[] = []
     try {
       apis = await this.dashboardClient.getApiList();
@@ -375,7 +376,7 @@ export class TykEntityProvider implements EntityProvider {
 
       this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
     } catch (error) {
-      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard`, error);
+      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard:`, error);
     }
 
     // discover the gateways
@@ -405,7 +406,7 @@ export class TykEntityProvider implements EntityProvider {
         locationKey: `${this.getProviderName}`,
       })));
     } catch (error) {
-      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard`, error);
+      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard:`, error);
     }
 
     return deferredEntities;
