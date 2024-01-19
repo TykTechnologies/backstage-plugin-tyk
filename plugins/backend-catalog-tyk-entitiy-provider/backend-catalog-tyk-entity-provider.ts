@@ -52,7 +52,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (!this.tykConfig.router.enabled && !this.tykConfig.scheduler.enabled) {
-      this.logger.warn("Tyk entity provider has no methods enabled for data collection - no data will be imported");
+      this.logger.warn(`Tyk entity provider for ${this.dashboardName} Dashboard has no methods enabled for data collection - no data will be imported`);
       return;
     }
 
@@ -343,28 +343,48 @@ export class TykEntityProvider implements EntityProvider {
 
     const deferredEntities: DeferredEntity[] = [];
 
+    try {
+      if (await this.dashboardClient.checkDashboardConnectivity()) {
+        this.logger.debug(`Found Tyk Dashboard ${this.dashboardName}`);      
+      } else {
+        this.logger.error(`Could not connect to Tyk ${this.dashboardName} Dashboard`);
+        return [];
+      }  
+    } catch (error) {
+      this.logger.error(`Error discovering Tyk ${this.dashboardName} Dashboard:`, error);
+      return [];
+    }
+
     const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDasboardComponentEntity();
     deferredEntities.push({
       entity: dashboardComponentEntity,
       locationKey: `${this.getProviderName}`,
     });
 
-    // discover the apis
-    const apis: API[] = await this.dashboardClient.getApiList();
-    const apiEntities: ApiEntityV1alpha1[] = apis.map((api: API) => {
-      return this.toApiEntity(api, this.dashboardClient.getConfig());
-    });
-    deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
-      entity: entity,
-      locationKey: `${this.getProviderName}`,
-    })));
+    // discover the APIs
+    let apis: API[] = []
+    try {
+      apis = await this.dashboardClient.getApiList();
+      const apiEntities: ApiEntityV1alpha1[] = apis.map((api: API) => {
+        return this.toApiEntity(api, this.dashboardClient.getConfig());
+      });
 
-    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`)
+      deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
+        entity: entity,
+        locationKey: `${this.getProviderName}`,
+      })));
 
-    const enrichedGateways: enrichedGateway[] = [];
-    const systemNodes = await this.dashboardClient.getSystemNodes();
-    for (const node of systemNodes.data.nodes) {
-      try {
+      this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
+    } catch (error) {
+      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard:`, error);
+    }
+
+    // discover the gateways
+    try {
+      const enrichedGateways: enrichedGateway[] = [];
+      const systemNodes = await this.dashboardClient.getSystemNodes();
+
+      for (const node of systemNodes.data.nodes) {
         let gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
 
         enrichedGateways.push({
@@ -373,20 +393,21 @@ export class TykEntityProvider implements EntityProvider {
           segmented: gateway.data.db_app_conf_options.node_is_segmented,
           tags: gateway.data.db_app_conf_options.tags,
         });
-      } catch (error) {
-        this.logger.error(error);
       }
+  
+      this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
+
+      const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
+        return this.toGatewayComponentEntity(apis, gateway);
+      });
+
+      deferredEntities.push(...gatewayComponentEntities.map((entity: ComponentEntityV1alpha1): DeferredEntity => ({
+        entity: entity,
+        locationKey: `${this.getProviderName}`,
+      })));
+    } catch (error) {
+      this.logger.error(`Error discovering Tyk APIs from ${this.dashboardName} Dashboard:`, error);
     }
-
-    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`)
-
-    const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
-      return this.toGatewayComponentEntity(apis, gateway);
-    });
-    deferredEntities.push(...gatewayComponentEntities.map((entity: ComponentEntityV1alpha1): DeferredEntity => ({
-      entity: entity,
-      locationKey: `${this.getProviderName}`,
-    })));
 
     return deferredEntities;
   }
