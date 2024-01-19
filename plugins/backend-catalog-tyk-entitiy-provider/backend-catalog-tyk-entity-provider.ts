@@ -102,25 +102,6 @@ export class TykEntityProvider implements EntityProvider {
     this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
 
-  toTykSystemEntity(): SystemEntityV1alpha1 {
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: 'tyk',
-        description: 'Tyk',
-        annotations: {
-          [ANNOTATION_LOCATION]: `url:${this.dashboardConfig?.host}`,
-          [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardConfig?.host}`,
-        },
-      },
-      spec: {
-        owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
-        domain: 'tyk',
-      }
-    };
-  }
-
   toDasboardComponentEntity(): ComponentEntityV1alpha1 {
     return {
       apiVersion: 'backstage.io/v1alpha1',
