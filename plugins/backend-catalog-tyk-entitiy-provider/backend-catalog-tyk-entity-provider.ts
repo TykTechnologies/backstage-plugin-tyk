@@ -57,7 +57,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (this.tykConfig.router.enabled) {
-      this.logger.info("Registering Tyk routes");
+      this.logger.info("Registering Tyk entity provider routes");
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
       // the POST request is to support webhook calls from Tyk Dashboard
       // these routes are accessible via the catalog api path /api/catalog/tyk/sync
@@ -72,7 +72,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (this.tykConfig.scheduler.enabled) {
-      this.logger.info("Scheduling Tyk task");
+      this.logger.info("Scheduling Tyk entity provider task");
 
       let frequency: number = this.tykConfig.scheduler.frequency || this.defaultSchedulerFrequency;
 
@@ -147,7 +147,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
-    this.logger.info(`Gateway ${gateway.id}, segmented ${gateway.segmented} with tags ${JSON.stringify(gateway.tags)}`);
+    this.logger.info(`Tyk Gateway ${gateway.id}, segmented ${gateway.segmented} with tags ${JSON.stringify(gateway.tags)}`);
 
     const provides: string[] = apis.reduce((collector: string[], api: API) => {
       const apiEntityName = `${kebabCase(this.dashboardName)}-${api.api_definition.api_id}`;
@@ -164,7 +164,7 @@ export class TykEntityProvider implements EntityProvider {
       return collector;
     }, []);
 
-    this.logger.info(`Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
+    this.logger.debug(`Tyk Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
 
     return {
       apiVersion: 'backstage.io/v1alpha1',
@@ -317,7 +317,7 @@ export class TykEntityProvider implements EntityProvider {
 
     // add custom labels, if any exist
     if (api.api_definition.config_data?.backstage?.labels) {
-      this.logger.debug(`${title} contains Backstage label data`);
+      this.logger.debug(`Tyk API "${title}" contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
@@ -341,7 +341,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async discoverAllEntities(): Promise<DeferredEntity[]> {
-    this.logger.info(`creating dashboard component for (${this.dashboardName})`);
+    this.logger.info(`Creating Tyk dashboard component for (${this.dashboardName})`);
 
     const deferredEntities: DeferredEntity[] = [];
 
