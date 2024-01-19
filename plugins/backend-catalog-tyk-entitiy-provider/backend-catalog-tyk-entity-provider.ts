@@ -201,7 +201,7 @@ export class TykEntityProvider implements EntityProvider {
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`, // inherit from dashboard
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`, // inherit from dashboard
         subcomponentOf: `tyk-dashboard-${this.dashboardName}`,
-        system: 'tyk',
+        system: `${this.dashboardConfig?.defaults?.system || ''}`, // inherit from dashboard
         providesApis: provides,
       }
     }
