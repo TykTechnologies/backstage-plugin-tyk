@@ -1,4 +1,10 @@
-import {API, APIListResponse, APIListResponseSchema, TykDashboardConfig} from "../schemas";
+import {
+  API,
+  APIListResponse,
+  APIListResponseSchema, GatewayResponse,
+  TykDashboardConfig,
+  TykDashboardSystemNodesResponse
+} from "../schemas";
 import {Logger} from "winston";
 
 export class DashboardClient {
@@ -59,6 +65,37 @@ export class DashboardClient {
 
     this.log.info(`Added Tyk API ${api.api_definition.name} to ${this.config.name}`);
     return true;
+  }
+
+  async getSystemNodes(): Promise<TykDashboardSystemNodesResponse> {
+    const response = await fetch(`${this.config.host}/api/system/nodes`, {
+      headers: {
+        Authorization: this.config.token
+      }
+    });
+
+    const data: TykDashboardSystemNodesResponse = await response.json();
+    if (response.status != 200) {
+      this.log.error(`Error fetching Tyk system nodes from ${this.config.name}: ${response.status} ${response.statusText}`);
+      throw new Error(`Error fetching Tyk system nodes from ${this.config.name}: ${response.status} ${response.statusText}`);
+    }
+
+    return data;
+  }
+
+  async getGateway(props: {node_id: string, hostname: string}): Promise<GatewayResponse> {
+    const res: Response = await fetch(`${this.config.host}/api/system/node/${props.node_id}/${props.hostname}`, {
+      headers: {
+        Authorization: this.config.token
+      }
+    });
+
+    const data: GatewayResponse = await res.json();
+    if (res.status != 200) {
+      throw new Error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
+    }
+
+    return data;
   }
 
   getConfig(): TykDashboardConfig {

@@ -5,6 +5,7 @@ export const APISchema = z.object({
     api_id: z.string(),
     name: z.string(),
     active: z.boolean(),
+    tags: z.array(z.string()),
     config_data: z.object({
       backstage: z.object({
         owner: z.string().optional(),
@@ -75,8 +76,43 @@ export const TykConfigSchema = z.object({
   dashboards: z.array(TykDashboardConfigSchema),
 });
 
+export const SystemNodesSchema = z.object({
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      hostname: z.string(),
+    })
+  ),
+  active_node_count: z.number(),
+  nodes_available: z.number(),
+  nodes_remaining: z.number(),
+  valid_until: z.number(),
+});
+
+export const DashboardSystemNodesResponseSchema = z.object({
+  data: SystemNodesSchema,
+});
+
+export const GatewayResponseSchema = z.object({
+  data: z.object({
+    db_app_conf_options: z.object({
+      node_is_segmented: z.boolean(),
+      tags: z.array(z.string()),
+    }),
+  }),
+});
+
+export type enrichedGateway = {
+  id: string
+  hostname: string
+  segmented: boolean
+  tags: string[]
+};
+
 export type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
 export type ApiEvent = z.infer<typeof ApiEventSchema>;
 export type TykDashboardConfig = z.infer<typeof TykDashboardConfigSchema>;
 export type TykConfig = z.infer<typeof TykConfigSchema>;
+export type TykDashboardSystemNodesResponse = z.infer<typeof DashboardSystemNodesResponseSchema>;
+export type GatewayResponse = z.infer<typeof GatewayResponseSchema>;
