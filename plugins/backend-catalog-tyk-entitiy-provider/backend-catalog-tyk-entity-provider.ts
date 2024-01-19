@@ -178,7 +178,7 @@ export class TykEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'website',
+        type: 'service',
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`, // inherit from dashboard
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`, // inherit from dashboard
         subcomponentOf: `tyk-dashboard-${this.dashboardName}`,
