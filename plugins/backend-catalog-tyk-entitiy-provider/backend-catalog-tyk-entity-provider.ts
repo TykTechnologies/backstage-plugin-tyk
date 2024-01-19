@@ -127,13 +127,12 @@ export class TykEntityProvider implements EntityProvider {
         type: 'website',
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`,
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
-        subcomponentOf: 'tyk',
-        system: 'tyk',
-        providesApis: ['tyk-dashboard-api', 'tyk-dashboard-admin-api', 'tyk-dashboard-system-api'],
-        consumesApis: ['default/tyk-gateway-api'],
+        system: `${this.dashboardConfig?.defaults?.system || ''}`,
+        providesApis: [`tyk-dashboard-api-${this.dashboardName}`, `tyk-dashboard-admin-api-${this.dashboardName}`, `tyk-dashboard-system-api-${this.dashboardName}`],
+        consumesApis: [`default/tyk-gateway-api-${this.dashboardName}`],
         dependsOn: [
-          'component:default/tyk-gateway',
-          'resource:default/tyk-dashboard-storage',
+          `component:default/tyk-gateway-${this.dashboardName}`,
+          `resource:default/tyk-dashboard-storage-${this.dashboardName}`,
         ]
       }
     };
