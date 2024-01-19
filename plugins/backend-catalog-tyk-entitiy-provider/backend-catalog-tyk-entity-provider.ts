@@ -102,7 +102,7 @@ export class TykEntityProvider implements EntityProvider {
     this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
 
-  toDasboardComponentEntity(): ComponentEntityV1alpha1 {
+  toDashboardComponentEntity(): ComponentEntityV1alpha1 {
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -340,7 +340,7 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error(`Could not connect to Tyk ${this.dashboardName} Dashboard`);
     }  
 
-    const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDasboardComponentEntity();
+    const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDashboardComponentEntity();
     deferredEntities.push({
       entity: dashboardComponentEntity,
       locationKey: `${this.getProviderName}`,
