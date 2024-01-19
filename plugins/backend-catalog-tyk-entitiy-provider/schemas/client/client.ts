@@ -19,6 +19,27 @@ export class DashboardClient {
     this.name = props.cfg.name;
   }
 
+  async checkDashboardConnectivity(): Promise<boolean> {
+    const res: Response = await fetch(`${this.config.host}/api/system/stats`, {
+      headers: {
+        Authorization: this.config.token
+      }
+    });
+    
+    switch (res.status) {
+      case 200:
+      case 201:
+        this.log.debug(`Connected to Tyk ${this.config.name} Dashboard ok`);
+        return true;
+      case 401:
+        this.log.error(`Authorisation failed with Tyk ${this.config.name} Dashboard - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
+        return false;
+      default:
+        this.log.error(`Error connecting to Tyk ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
+        return false;
+    }
+  }
+
   async getApiList(): Promise<API[]> {
 
     const res: Response = await fetch(`${this.config.host}/api/apis?p=-1`, {
@@ -32,15 +53,15 @@ export class DashboardClient {
     if (res.status != 200) {
       switch (res.status) {
         case 401:
-          this.log.error(`Authorisation failed with Tyk ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
+          this.log.error(`Authorisation failed with Tyk Dashboard ${this.config.name} - check that 'token' is correctly configured in 'tyk.dashboards' app config settings`);
           return [];
         default:
-          this.log.error(`Error fetching Tyk API definitions from ${this.config.name}: ${res.status} ${res.statusText}`);
+          this.log.error(`Error fetching Tyk API definitions from ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
           return [];
       }
     }
 
-    if (data.apis == undefined) {
+    if (data.apis == undefined || data.apis.length == 0) {
       this.log.warn(`No Tyk API definitions found at ${this.config.name}.`);
       return [];
     }
@@ -77,7 +98,6 @@ export class DashboardClient {
     const data: TykDashboardSystemNodesResponse = await response.json();
     if (response.status != 200) {
       this.log.error(`Error fetching Tyk system nodes from ${this.config.name}: ${response.status} ${response.statusText}`);
-      throw new Error(`Error fetching Tyk system nodes from ${this.config.name}: ${response.status} ${response.statusText}`);
     }
 
     return data;
@@ -92,7 +112,7 @@ export class DashboardClient {
 
     const data: GatewayResponse = await res.json();
     if (res.status != 200) {
-      throw new Error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
+      this.log.error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
     }
 
     return data;
