@@ -412,7 +412,7 @@ export class TykEntityProvider implements EntityProvider {
     // try/catch block is used to avoid performing a sync if an error occurs, as it could result in an incorrect data mutation
     try {
       const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
-      this.logger.info(`Importing ${deferredEntities.length} Tyk entities from ${this.dashboardName} Dashboard`);
+      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"} from ${this.dashboardName} Dashboard`);
       await this.connection!.applyMutation({
         type: 'full',
         entities: deferredEntities,
