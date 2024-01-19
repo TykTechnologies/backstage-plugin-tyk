@@ -45,7 +45,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
-    this.logger.info(`Initializing Tyk entity provider for ${this.dashboardName} environment`);
+    this.logger.debug(`Initializing Tyk entity provider for ${this.dashboardName} Dashboard`);
 
     if (!this.connection) {
       throw new Error('Not initialized');
@@ -57,7 +57,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (this.tykConfig.router.enabled) {
-      this.logger.info("Registering Tyk entity provider routes");
+      this.logger.debug("Registering Tyk entity provider routes");
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
       // the POST request is to support webhook calls from Tyk Dashboard
       // these routes are accessible via the catalog api path /api/catalog/tyk/sync
@@ -72,7 +72,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (this.tykConfig.scheduler.enabled) {
-      this.logger.info("Scheduling Tyk entity provider task");
+      this.logger.debug("Scheduling Tyk entity provider task");
 
       let frequency: number = this.tykConfig.scheduler.frequency || this.defaultSchedulerFrequency;
 
@@ -88,6 +88,8 @@ export class TykEntityProvider implements EntityProvider {
       // if the scheduler is not enabled, then perform an initial sync to populate data - otherwise there will be no data until an endpoint is called
       this.importAllDiscoveredEntities();
     }
+
+    this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
 
   toTykSystemEntity(): SystemEntityV1alpha1 {
@@ -147,8 +149,6 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
-    this.logger.info(`Tyk Gateway ${gateway.id}, segmented ${gateway.segmented} with tags ${JSON.stringify(gateway.tags)}`);
-
     const provides: string[] = apis.reduce((collector: string[], api: API) => {
       const apiEntityName = `${kebabCase(this.dashboardName)}-${api.api_definition.api_id}`;
       if (!gateway.segmented) {
@@ -163,8 +163,8 @@ export class TykEntityProvider implements EntityProvider {
       }
       return collector;
     }, []);
-
-    this.logger.debug(`Tyk Gateway ${gateway.id} with tags ${JSON.stringify(gateway.tags)} provides ${JSON.stringify(provides)} APIs`)
+    
+    this.logger.debug(`Generating entity for Tyk Gateway ${gateway.id} from ${this.dashboardName} Dashboard, hosted on ${gateway.hostname} and is ${gateway.segmented ? `segmented with tags ${JSON.stringify(gateway.tags)}`:"not segmented"}, providing ${provides.length} APIs: ${JSON.stringify(provides)}`);
 
     return {
       apiVersion: 'backstage.io/v1alpha1',
@@ -217,19 +217,17 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.debug(`Generating Tyk API entity for "${title}"`);
+    this.logger.debug(`Generating Tyk API entity for "${title}" from ${this.dashboardName} Dashboard`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
     const owner: string = api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || "");
     if (owner === "") {
-      this.logger.error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
-      throw new Error(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
+      this.logger.warn(`No owner found for Tyk API "${api.api_definition.name}" and no default owner configured, skipping`);
     }
     const lifecycle: string = api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || "");
     if (lifecycle === "") {
-      this.logger.error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
-      throw new Error(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
+      this.logger.warn(`No lifecycle found for Tyk API "${api.api_definition.name}" and no default lifecycle configured, skipping`);
     }
 
     // name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
@@ -341,7 +339,7 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async discoverAllEntities(): Promise<DeferredEntity[]> {
-    this.logger.info(`Creating Tyk dashboard component for (${this.dashboardName})`);
+    this.logger.debug(`Discovering Tyk entities for ${this.dashboardName} Dashboard`);
 
     const deferredEntities: DeferredEntity[] = [];
 
@@ -361,6 +359,8 @@ export class TykEntityProvider implements EntityProvider {
       locationKey: `${this.getProviderName}`,
     })));
 
+    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`)
+
     const enrichedGateways: enrichedGateway[] = [];
     const systemNodes = await this.dashboardClient.getSystemNodes();
     for (const node of systemNodes.data.nodes) {
@@ -377,6 +377,9 @@ export class TykEntityProvider implements EntityProvider {
         this.logger.error(error);
       }
     }
+
+    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`)
+
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
       return this.toGatewayComponentEntity(apis, gateway);
     });
@@ -390,6 +393,7 @@ export class TykEntityProvider implements EntityProvider {
 
   async importAllDiscoveredEntities(): Promise<void> {
     const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
+    this.logger.info(`Importing ${deferredEntities.length} Tyk entities from ${this.dashboardName} Dashboard`);
     await this.connection!.applyMutation({
       type: 'full',
       entities: deferredEntities,
