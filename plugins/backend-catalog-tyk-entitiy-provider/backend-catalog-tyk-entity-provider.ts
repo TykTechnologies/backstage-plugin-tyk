@@ -348,7 +348,7 @@ export class TykEntityProvider implements EntityProvider {
     const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDasboardComponentEntity();
     deferredEntities.push({
       entity: dashboardComponentEntity,
-      locationKey: `tyk-dashboard-${this.dashboardName}`,
+      locationKey: `${this.getProviderName}`,
     });
 
     // discover the apis
@@ -358,7 +358,7 @@ export class TykEntityProvider implements EntityProvider {
     });
     deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
       entity: entity,
-      locationKey: `tyk-api-${this.dashboardName}-${entity.metadata.name}`,
+      locationKey: `${this.getProviderName}`,
     })));
 
     const enrichedGateways: enrichedGateway[] = [];
@@ -382,7 +382,7 @@ export class TykEntityProvider implements EntityProvider {
     });
     deferredEntities.push(...gatewayComponentEntities.map((entity: ComponentEntityV1alpha1): DeferredEntity => ({
       entity: entity,
-      locationKey: `tyk-gateway-${this.dashboardName}-${entity.metadata.name}`,
+      locationKey: `${this.getProviderName}`,
     })));
 
     return deferredEntities;
@@ -396,33 +396,33 @@ export class TykEntityProvider implements EntityProvider {
     });
   }
 
-  async importAllApis(): Promise<void> {
-    this.logger.info(`Importing APIs from ${this.dashboardName}`);
+  // async importAllApis(): Promise<void> {
+  //   this.logger.info(`Importing APIs from ${this.dashboardName}`);
 
-    if (!this.connection) {
-      throw new Error('Not initialized');
-    }
-    let allAPIs: API[] = await this.dashboardClient.getApiList();
+  //   if (!this.connection) {
+  //     throw new Error('Not initialized');
+  //   }
+  //   let allAPIs: API[] = await this.dashboardClient.getApiList();
 
-    let allApiEntities: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
-      return this.toApiEntity(api, this.dashboardClient.getConfig());
-    });
+  //   let allApiEntities: ApiEntityV1alpha1[] = allAPIs.map((api: API) => {
+  //     return this.toApiEntity(api, this.dashboardClient.getConfig());
+  //   });
 
-    if (!allApiEntities || allApiEntities.length == 0) {
-      this.logger.info('No Tyk api entities to apply');
-      return;
-    }
+  //   if (!allApiEntities || allApiEntities.length == 0) {
+  //     this.logger.info('No Tyk api entities to apply');
+  //     return;
+  //   }
 
-    this.logger.info(`Applying ${allApiEntities.length} Tyk API entities to catalog`);
+  //   this.logger.info(`Applying ${allApiEntities.length} Tyk API entities to catalog`);
 
-    await this.connection.applyMutation({
-      type: 'full',
-      entities: allApiEntities.map((entity: ApiEntityV1alpha1): { entity: any, locationKey: any } => ({
-        entity,
-        locationKey: `${this.getProviderName()}`,
-      })),
-    });
-  }
+  //   await this.connection.applyMutation({
+  //     type: 'full',
+  //     entities: allApiEntities.map((entity: ApiEntityV1alpha1): { entity: any, locationKey: any } => ({
+  //       entity,
+  //       locationKey: `${this.getProviderName()}`,
+  //     })),
+  //   });
+  // }
 
   /**
    * @deprecated Currently not in use. Originally created to service incoming webhook payloads for single-dashboard setups,
