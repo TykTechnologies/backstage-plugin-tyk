@@ -102,26 +102,7 @@ export class TykEntityProvider implements EntityProvider {
     this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
 
-  toTykSystemEntity(): SystemEntityV1alpha1 {
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: 'tyk',
-        description: 'Tyk',
-        annotations: {
-          [ANNOTATION_LOCATION]: `url:${this.dashboardConfig?.host}`,
-          [ANNOTATION_ORIGIN_LOCATION]: `url:${this.dashboardConfig?.host}`,
-        },
-      },
-      spec: {
-        owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
-        domain: 'tyk',
-      }
-    };
-  }
-
-  toDasboardComponentEntity(): ComponentEntityV1alpha1 {
+  toDashboardComponentEntity(): ComponentEntityV1alpha1 {
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -146,13 +127,12 @@ export class TykEntityProvider implements EntityProvider {
         type: 'website',
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`,
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
-        subcomponentOf: 'tyk',
-        system: 'tyk',
-        providesApis: ['tyk-dashboard-api', 'tyk-dashboard-admin-api', 'tyk-dashboard-system-api'],
-        consumesApis: ['default/tyk-gateway-api'],
+        system: `${this.dashboardConfig?.defaults?.system || ''}`,
+        providesApis: [`tyk-dashboard-api-${this.dashboardName}`, `tyk-dashboard-admin-api-${this.dashboardName}`, `tyk-dashboard-system-api-${this.dashboardName}`],
+        consumesApis: [`default/tyk-gateway-api-${this.dashboardName}`],
         dependsOn: [
-          'component:default/tyk-gateway',
-          'resource:default/tyk-dashboard-storage',
+          `component:default/tyk-gateway-${this.dashboardName}`,
+          `resource:default/tyk-dashboard-storage-${this.dashboardName}`,
         ]
       }
     };
@@ -197,11 +177,11 @@ export class TykEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'website',
+        type: 'service',
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`, // inherit from dashboard
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`, // inherit from dashboard
         subcomponentOf: `tyk-dashboard-${this.dashboardName}`,
-        system: 'tyk',
+        system: `${this.dashboardConfig?.defaults?.system || ''}`, // inherit from dashboard
         providesApis: provides,
       }
     }
@@ -359,7 +339,7 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error(`Could not connect to Tyk ${this.dashboardName} Dashboard`);
     }  
 
-    const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDasboardComponentEntity();
+    const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDashboardComponentEntity();
     deferredEntities.push({
       entity: dashboardComponentEntity,
       locationKey: `${this.getProviderName}`,
