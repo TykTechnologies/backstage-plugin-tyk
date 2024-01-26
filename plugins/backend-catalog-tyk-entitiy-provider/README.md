@@ -5,7 +5,7 @@ Welcome to the Tyk Backstage Entity Provider
 
 #### Entity provider initialisation
 
-Initialisation of the entity provider by the Backstage catalog
+How the Backstage catalog initialises Tyk entity providers
 
 ```mermaid
 sequenceDiagram
@@ -15,24 +15,51 @@ sequenceDiagram
     participant td as Tyk Dashboard
     ca->>co: Read entity provider configuration
     co-->>ca: Entity provider configuration
-    loop Each entity provider configuration
-        ca->>ep: Create entity provider using configuration
+    loop Create each entity provider defined in configuration
+        ca->>ep: Entity provider configuration
         ep-->>ca: Entity provider
         ca->>ca: Add entity provider to processing engine
     end
-    loop Each entity provider
-        ca->>ep: Initialise entity provider scheduler and routes
+    loop Initialise each entity provider
+        ca->>ep: Scheduler and router
+        ep->>ep: Setup schedule and routes
         ep->>td: Get Tyk data
+        Note over ep: Perform initial synchronisation
         td-->>ep: Tyk data
         ep->>ep: Convert Tyk data into entities
         ep-)ca: Tyk entities
     end
 ```
 
-#### Synchronisation Process
+#### Data Import Process
 
+How the Tyk entity provider imports data from a Tyk dashboard into the Backstage catalog
+
+```mermaid
+sequenceDiagram
+    participant ep as Tyk Entity Provider
+    participant td as Tyk Dashboard
+    participant ca as Catalog
+    ep->>ep: Generate dashboard entity based on provided config
+    ep->>td: Get API data
+    td-->>ep: API data
+    loop Convert APIs into entities
+        ep->>ep: Convert API data into entity
+    end
+    ep->>td: Get system data
+    td-->>ep: System data
+    loop Process gateways found in defined in system data
+        ep->>td: Get gateway data
+        td-->>ep: Gateway data
+        ep->>ep: Convert gateway data into entity
+    end
+    ep-->>ep: Generate relationships between API and gateway entities using tags
+    ep-)ca: Tyk entities
+```
 
 #### Operation of Scheduler
+
+How the Backstage scheduler triggers the Tyk entity provider
 
 ```mermaid
 sequenceDiagram
@@ -49,6 +76,8 @@ sequenceDiagram
 ```
 
 #### Operation of Router
+
+How the Backstage router triggers the Tyk entity provider
 
 ```mermaid
 sequenceDiagram
