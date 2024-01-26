@@ -3,6 +3,8 @@ Welcome to the Tyk Backstage Entity Provider
 
 ### Sequence Diagrams
 
+#### Entity provider initialisation
+
 Initialisation of the entity provider by the Backstage catalog
 
 ```mermaid
