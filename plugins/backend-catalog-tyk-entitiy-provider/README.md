@@ -24,7 +24,7 @@ sequenceDiagram
         ca->>ep: Scheduler and router
         ep->>ep: Setup schedule and routes
         ep->>td: Get Tyk data
-        Note over ep: Perform initial synchronisation
+        Note over ep: Initial synchronisation
         td-->>ep: Tyk data
         ep->>ep: Convert Tyk data into entities
         ep-)ca: Tyk entities
