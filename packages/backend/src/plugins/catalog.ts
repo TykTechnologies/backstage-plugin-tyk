@@ -29,9 +29,9 @@ export default async function createPlugin(
   const {processingEngine, router} = await builder.build();
   await processingEngine.start();
 
-  tykEPs.forEach((ep: TykEntityProvider) => {
-    ep.init(router, env.scheduler);
-  });
+  await Promise.all(tykEPs.map(async (ep) => {
+    await ep.init(router, env.scheduler);
+  }));
 
   return router;
 }
