@@ -94,10 +94,10 @@ export class TykEntityProvider implements EntityProvider {
         frequency: {minutes: frequency},
         timeout: {minutes: 1},
       });
-    } else {
-      // if the scheduler is not enabled, then perform an initial sync to populate data - otherwise there will be no data until an endpoint is called
-      this.importAllDiscoveredEntities();
     }
+
+    // perform an initial sync to populate data, so that data is available immediately
+    await this.importAllDiscoveredEntities();
 
     this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
