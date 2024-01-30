@@ -302,8 +302,8 @@ export class TykEntityProvider implements EntityProvider {
       apiEntity.spec.definition = yaml.dump(api.oas);
       linkPathPart = "oas";
     } else if (api.api_definition.graphql?.enabled === true) {
-      apiEntity.spec.definition = api.api_definition.graphql?.schema;
       apiEntity.spec.type = 'graphql';
+      apiEntity.spec.definition = api.api_definition.graphql?.schema;
     }
 
     // add custom labels, if any exist
