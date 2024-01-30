@@ -14,6 +14,7 @@ import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
 import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
+import { string } from 'zod';
 
 export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
@@ -287,20 +288,22 @@ export class TykEntityProvider implements EntityProvider {
         title: title,
       },
       spec: {
-        type: 'openapi',
+        type: 'tyk', // default to Tyk API definition, but reset later if needed
         system: api.api_definition.config_data?.backstage?.system ?? config.defaults?.system,
         owner: api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || ""),
         lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || ""),
-        definition: 'openapi: "3.0.0"',
+        definition: JSON.stringify(api.api_definition),
       },
     };
 
+    // reset specific fields if the API is not a standard Tyk API definition 
     if (typeof api.oas == "object") {
+      apiEntity.spec.type = 'openapi';
       apiEntity.spec.definition = yaml.dump(api.oas);
       linkPathPart = "oas";
     } else if (api.api_definition.graphql?.enabled === true) {
-      apiEntity.spec.definition = api.api_definition.graphql?.schema;
       apiEntity.spec.type = 'graphql';
+      apiEntity.spec.definition = api.api_definition.graphql?.schema;
     }
 
     // add custom labels, if any exist
@@ -308,7 +311,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.debug(`Tyk API "${title}" contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
-        // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
+        // this is best practice for open-source plugins, so that Tyk labels can be distinguished from others
         apiEntity.metadata.labels!["tyk.io/" + label.key] = label.value;
       }
     }
