@@ -311,7 +311,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.debug(`Tyk API "${title}" contains Backstage label data`);
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
-        // this seems like best practice, as we are using the standard 'API' entity kind, so anything we add to it should be distinguished
+        // this is best practice for open-source plugins, so that Tyk labels can be distinguished from others
         apiEntity.metadata.labels!["tyk.io/" + label.key] = label.value;
       }
     }
