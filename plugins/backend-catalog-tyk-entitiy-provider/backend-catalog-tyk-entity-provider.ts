@@ -14,6 +14,7 @@ import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
 import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
 import {DashboardClient} from "./schemas/client/client";
+import { string } from 'zod';
 
 export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
@@ -287,15 +288,17 @@ export class TykEntityProvider implements EntityProvider {
         title: title,
       },
       spec: {
-        type: 'openapi',
+        type: 'tyk', // default to Tyk API definition, but reset later if needed
         system: api.api_definition.config_data?.backstage?.system ?? config.defaults?.system,
         owner: api.api_definition.config_data?.backstage?.owner ?? (config.defaults?.owner || ""),
         lifecycle: api.api_definition.config_data?.backstage?.lifecycle ?? (config.defaults?.lifecycle || ""),
-        definition: 'openapi: "3.0.0"',
+        definition: JSON.stringify(api.api_definition),
       },
     };
 
+    // reset specific fields if the API is not a standard Tyk API definition 
     if (typeof api.oas == "object") {
+      apiEntity.spec.type = 'openapi';
       apiEntity.spec.definition = yaml.dump(api.oas);
       linkPathPart = "oas";
     } else if (api.api_definition.graphql?.enabled === true) {
