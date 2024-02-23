@@ -13,18 +13,8 @@ export default async function createPlugin(
   const builder: CatalogBuilder = CatalogBuilder.create(env);
   builder.addProcessor(new ScaffolderEntitiesProcessor());
 
-  const tykConfig: TykConfig = env.config.get("tyk");
-  const tykEPs: TykEntityProvider[] = [];
-  tykConfig.dashboards.forEach((dashboard: TykDashboardConfig) => {
-    const ep: TykEntityProvider = new TykEntityProvider({
-      logger: env.logger,
-      config: env.config.get('tyk'),
-      dashboardName: dashboard.name,
-    });
-
-    tykEPs.push(ep);
-    builder.addEntityProvider(ep);
-  });
+  const tykEPs = TykEntityProvider.fromConfig(env.config, env.logger);
+  builder.addEntityProvider(tykEPs);
 
   const {processingEngine, router} = await builder.build();
   await processingEngine.start();

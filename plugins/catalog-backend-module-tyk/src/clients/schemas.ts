@@ -64,7 +64,7 @@ export const TykDashboardConfigSchema = z.object({
   }).optional(),
 });
 
-export const TykConfigSchema = z.object({
+export const TykGlobalOptionsConfigSchema = z.object({
   router: z.object({
     enabled: z.boolean(),
   }),
@@ -73,6 +73,10 @@ export const TykConfigSchema = z.object({
     frequency: z.number().optional(),
   }),
   importCategoriesAsTags: z.boolean().optional(),
+})
+
+export const TykConfigSchema = z.object({
+  globalOptions: TykGlobalOptionsConfigSchema,
   dashboards: z.array(TykDashboardConfigSchema),
 });
 
@@ -114,5 +118,6 @@ export type API = z.infer<typeof APISchema>;
 export type ApiEvent = z.infer<typeof ApiEventSchema>;
 export type TykDashboardConfig = z.infer<typeof TykDashboardConfigSchema>;
 export type TykConfig = z.infer<typeof TykConfigSchema>;
+export type TykGlobalOptionsConfig = z.infer<typeof TykGlobalOptionsConfigSchema>;
 export type TykDashboardSystemNodesResponse = z.infer<typeof DashboardSystemNodesResponseSchema>;
 export type GatewayResponse = z.infer<typeof GatewayResponseSchema>;
