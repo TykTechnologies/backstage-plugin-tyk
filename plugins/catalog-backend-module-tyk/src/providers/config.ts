@@ -1,6 +1,6 @@
 import { Config } from '@backstage/config';
 
-import {TykDashboardConfig, TykConfig} from "../clients/schemas";
+import {TykDashboardConfig, TykConfig} from "./types";
 
 
 export function readTykConfiguration(config: Config): TykConfig

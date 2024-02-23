@@ -2,7 +2,7 @@ import {CatalogBuilder} from '@backstage/plugin-catalog-backend';
 import {ScaffolderEntitiesProcessor} from '@backstage/plugin-scaffolder-backend';
 import {Router} from 'express';
 import {PluginEnvironment} from '../types';
-import {TykConfig, TykDashboardConfig} from "../../../../plugins/catalog-backend-module-tyk/src/clients/schemas";
+import {TykConfig, TykDashboardConfig} from "../../../../plugins/catalog-backend-module-tyk/src/clients/types";
 import {
   TykEntityProvider
 } from "../../../../plugins/catalog-backend-module-tyk/src/providers/tyk-entity-provider";
