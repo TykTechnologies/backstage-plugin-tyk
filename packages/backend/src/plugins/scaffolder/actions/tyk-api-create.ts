@@ -2,8 +2,8 @@ import {Config} from '@backstage/config';
 import {Logger} from 'winston';
 import {createTemplateAction} from '@backstage/plugin-scaffolder-node';
 import {z} from 'zod';
-import {API, TykDashboardConfig} from "../../../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/schemas";
-import {DashboardClient} from "../../../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/client/client";
+import {API, TykDashboardConfig} from "../../../../../../plugins/catalog-backend-module-tyk/src/clients/schemas";
+import {TykDashboardClient} from "../../../../../../plugins/catalog-backend-module-tyk/src/clients/tyk-dashboard-client";
 
 export const createTykApiAction = (config: Config, logger: Logger) => {
   return createTemplateAction({
@@ -21,7 +21,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
 
       const dashboardConfigs: TykDashboardConfig[] = config.get("tyk.dashboards") as TykDashboardConfig[];
       const dashboardClients = dashboardConfigs.map((dashboardConfig: TykDashboardConfig) => {
-        return new DashboardClient({log: logger, cfg: dashboardConfig});
+        return new TykDashboardClient({log: logger, cfg: dashboardConfig});
       });
 
       const targetDashboard = dashboardClients.find((dashboard) => {

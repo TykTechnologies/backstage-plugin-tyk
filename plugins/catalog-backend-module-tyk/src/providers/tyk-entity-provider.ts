@@ -12,14 +12,14 @@ import {Router} from 'express';
 import {PluginTaskScheduler} from '@backstage/backend-tasks';
 import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
-import {DashboardClient} from "./schemas/client/client";
+import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "../clients/schemas";
+import {TykDashboardClient} from "../clients/tyk-dashboard-client";
 import { string } from 'zod';
 
 export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
   private connection?: EntityProviderConnection;
-  private dashboardClient: DashboardClient;
+  private dashboardClient: TykDashboardClient;
   private dashboardConfig?: TykDashboardConfig;
   private readonly tykConfig: TykConfig;
   private readonly dashboardName: string;
@@ -31,7 +31,7 @@ export class TykEntityProvider implements EntityProvider {
     this.dashboardName = props.dashboardName;
 
     this.dashboardConfig = this.tykConfig.dashboards.find((dashboard: TykDashboardConfig): boolean => dashboard.name == props.dashboardName)!;
-    this.dashboardClient = new DashboardClient({
+    this.dashboardClient = new TykDashboardClient({
       log: props.logger,
       cfg: this.dashboardConfig,
     });

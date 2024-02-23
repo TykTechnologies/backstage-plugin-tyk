@@ -2,10 +2,10 @@ import {CatalogBuilder} from '@backstage/plugin-catalog-backend';
 import {ScaffolderEntitiesProcessor} from '@backstage/plugin-scaffolder-backend';
 import {Router} from 'express';
 import {PluginEnvironment} from '../types';
-import {TykConfig, TykDashboardConfig} from "../../../../plugins/backend-catalog-tyk-entitiy-provider/schemas/schemas";
+import {TykConfig, TykDashboardConfig} from "../../../../plugins/catalog-backend-module-tyk/src/clients/schemas";
 import {
   TykEntityProvider
-} from "../../../../plugins/backend-catalog-tyk-entitiy-provider/backend-catalog-tyk-entity-provider";
+} from "../../../../plugins/catalog-backend-module-tyk/src/providers/tyk-entity-provider";
 
 export default async function createPlugin(
   env: PluginEnvironment,
