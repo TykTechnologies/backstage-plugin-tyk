@@ -4,7 +4,7 @@ import {
   ANNOTATION_ORIGIN_LOCATION,
   ANNOTATION_SOURCE_LOCATION,
   ANNOTATION_VIEW_URL,
-  ApiEntityV1alpha1, ComponentEntityV1alpha1, SystemEntityV1alpha1
+  ApiEntityV1alpha1, ComponentEntityV1alpha1
 } from '@backstage/catalog-model'
 import {DeferredEntity, EntityProvider, EntityProviderConnection,} from '@backstage/plugin-catalog-node';
 import {Logger} from 'winston';
@@ -16,7 +16,6 @@ import {API, enrichedGateway} from "../clients/types";
 import {TykDashboardConfig, TykGlobalOptionsConfig} from "./types";
 import {TykDashboardClient} from "../clients/tyk-dashboard-client";
 import { Config } from '@backstage/config';
-import { string } from 'zod';
 import { readTykConfiguration } from './config';
 
 export class TykEntityProvider implements EntityProvider {
