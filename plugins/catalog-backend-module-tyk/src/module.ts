@@ -1,13 +1,24 @@
+import { loggerToWinstonLogger } from '@backstage/backend-common';
 import { coreServices, createBackendModule } from '@backstage/backend-plugin-api';
+import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 
-export const catalogModuleTyk = createBackendModule({
+import { TykEntityProvider } from './providers';
+
+export const catalogModuleTykEntityProvider = createBackendModule({
+  moduleId: 'tyk-entity-provider',
   pluginId: 'catalog',
-  moduleId: 'tyk',
-  register(reg) {
-    reg.registerInit({
-      deps: { logger: coreServices.logger },
-      async init({ logger }) {
-        logger.info('Hello World!')
+  register(env) {
+    env.registerInit({
+      deps: {
+        catalog: catalogProcessingExtensionPoint,
+        config: coreServices.rootConfig,
+        logger: coreServices.logger,
+        scheduler: coreServices.scheduler,
+      },
+      async init({ catalog, config, logger }) {
+        catalog.addEntityProvider(
+          TykEntityProvider.fromConfig(config, loggerToWinstonLogger(logger)),
+        );
       },
     });
   },
