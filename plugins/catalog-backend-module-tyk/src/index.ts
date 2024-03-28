@@ -5,4 +5,5 @@
  * @packageDocumentation
  */
 
-export { catalogModuleTyk } from './module';
+export * from './clients';
+export * from './providers';
