@@ -17,6 +17,7 @@ import {TykDashboardConfig, TykGlobalOptionsConfig} from "./types";
 import {TykDashboardClient} from "../clients/tyk-dashboard-client";
 import { Config } from '@backstage/config';
 import { readTykConfiguration } from './config';
+import { SchedulerService } from '@backstage/backend-plugin-api';
 
 export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
@@ -26,7 +27,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly globalOptionsConfig: TykGlobalOptionsConfig;
   private readonly defaultSchedulerFrequency = 5;
 
-  static fromConfig(
+  static fromConfigNoInit(
     config: Config,
     logger: Logger,
   ): TykEntityProvider[] {
@@ -34,11 +35,34 @@ export class TykEntityProvider implements EntityProvider {
     let tykEntityProviders: TykEntityProvider[] = [];
 
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
-      tykEntityProviders.push(new TykEntityProvider({
+      let ep = new TykEntityProvider({
         logger: logger,
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
-      }));
+      });
+      tykEntityProviders.push(ep);
+    });
+
+    return tykEntityProviders;
+  }
+
+  static fromConfig(
+    config: Config,
+    logger: Logger,
+    router: Router,
+    scheduler: SchedulerService
+  ): TykEntityProvider[] {
+    const tykConfig = readTykConfiguration(config);
+    let tykEntityProviders: TykEntityProvider[] = [];
+
+    tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
+      let ep = new TykEntityProvider({
+        logger: logger,
+        globalOptionsConfig: tykConfig.globalOptions,
+        dashboardConfig: tykDashboardConfig,
+      });
+      ep.init(router, scheduler);
+      tykEntityProviders.push(ep);
     });
 
     return tykEntityProviders;
