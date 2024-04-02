@@ -1,0 +1,1 @@
+export { catalogModuleTykEntityProvider as default } from  './module';
