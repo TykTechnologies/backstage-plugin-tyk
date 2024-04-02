@@ -4,7 +4,7 @@ import {Router} from 'express';
 import {PluginEnvironment} from '../types';
 import {
   TykEntityProvider
-} from '@davegarvey/plugin-catalog-backend-module-tyk';
+} from '../../../../plugins/catalog-backend-module-tyk';
 
 export default async function createPlugin(
   env: PluginEnvironment,
@@ -19,7 +19,9 @@ export default async function createPlugin(
   await processingEngine.start();
 
   await Promise.all(tykEPs.map(async (ep) => {
-    await ep.init(router, env.scheduler);
+    await ep.init();
+    await ep.registerRoutes(router);
+    await ep.registerSchedule(env.scheduler);
   }));
 
   return router;

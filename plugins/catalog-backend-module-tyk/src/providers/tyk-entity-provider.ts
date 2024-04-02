@@ -86,7 +86,7 @@ export class TykEntityProvider implements EntityProvider {
     return `tyk-entity-provider-${this.dashboardConfig.name}`;
   } 
 
-  async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
+  async init(): Promise<void> {
     this.logger.debug(`Initializing Tyk entity provider for ${this.dashboardConfig.name} Dashboard`);
 
     if (!this.connection) {
@@ -107,6 +107,13 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.error(`Error performing connectivity check for Tyk ${this.dashboardConfig.name} Dashboard:`, error);
     }
 
+    // perform an initial sync to populate data, so that data is available immediately
+    await this.importAllDiscoveredEntities();
+
+    this.logger.info(`Tyk entity provider initialized for ${this.dashboardConfig.name} Dashboard`);
+  }
+
+  async registerRoutes(router: Router) {
     if (this.globalOptionsConfig.router.enabled) {
       this.logger.debug("Registering Tyk entity provider routes");
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
@@ -121,7 +128,9 @@ export class TykEntityProvider implements EntityProvider {
         res.status(200).end();
       });
     }
+  }
 
+  async registerSchedule(scheduler: PluginTaskScheduler) {
     if (this.globalOptionsConfig.scheduler.enabled) {
       this.logger.debug("Scheduling Tyk entity provider task");
 
@@ -136,11 +145,6 @@ export class TykEntityProvider implements EntityProvider {
         timeout: {minutes: 1},
       });
     }
-
-    // perform an initial sync to populate data, so that data is available immediately
-    await this.importAllDiscoveredEntities();
-
-    this.logger.info(`Tyk entity provider initialized for ${this.dashboardConfig.name} Dashboard`);
   }
 
   toDashboardComponentEntity(): ComponentEntityV1alpha1 {
