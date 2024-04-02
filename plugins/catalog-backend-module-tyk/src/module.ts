@@ -5,7 +5,7 @@ import { Router } from 'express';
 import { TykEntityProvider } from './providers';
 
 export const catalogModuleTykEntityProvider = createBackendModule({
-  moduleId: 'tyk-entity-provider',
+  moduleId: 'catalog-backend-module-tyk-entity-provider',
   pluginId: 'catalog',
   register(env) {
     env.registerInit({
