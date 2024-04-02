@@ -19,6 +19,16 @@
     "./alpha": "./src/alpha.ts",
     "./package.json": "./package.json"
   },
+  "typesVersion": {
+    "*": {
+      "alpha": [
+        "scr/alpha.ts"
+      ],
+      "package.json": [
+        "package.json"
+      ]
+    }
+  },
   "scripts": {
     "start": "backstage-cli package start",
     "build": "backstage-cli package build",
