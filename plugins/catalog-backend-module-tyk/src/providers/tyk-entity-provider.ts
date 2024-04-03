@@ -87,15 +87,6 @@ export class TykEntityProvider implements EntityProvider {
     return `tyk-entity-provider-${this.dashboardConfig.name}`;
   }
 
-  async init(): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Not initialized');
-    }
-
-    // perform an initial sync to populate data, so that data is available immediately
-    await this.importAllDiscoveredEntities();
-  }
-
   async checkClientConnectivity() {
     try {
       if (await this.dashboardClient.checkDashboardConnectivity()) {
@@ -427,6 +418,10 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllDiscoveredEntities(): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
     // try/catch block is used to avoid performing a sync if an error occurs, as it could result in an incorrect data mutation
     try {
       const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
