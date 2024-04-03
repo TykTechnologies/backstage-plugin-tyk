@@ -27,41 +27,24 @@ export class TykEntityProvider implements EntityProvider {
   private readonly globalOptionsConfig: TykGlobalOptionsConfig;
   private readonly defaultSchedulerFrequency = 5;
 
-  static fromConfigNoInit(
-    config: Config,
-    logger: Logger,
-  ): TykEntityProvider[] {
-    const tykConfig = readTykConfiguration(config);
-    let tykEntityProviders: TykEntityProvider[] = [];
-
-    tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
-      let ep = new TykEntityProvider({
-        logger: logger,
-        globalOptionsConfig: tykConfig.globalOptions,
-        dashboardConfig: tykDashboardConfig,
-      });
-      tykEntityProviders.push(ep);
-    });
-
-    return tykEntityProviders;
-  }
-
   static fromConfig(
-    config: Config,
-    logger: Logger,
-    router: Router,
-    scheduler: SchedulerService
+    options: {
+      config: Config,
+      logger: Logger,
+      router?: Router,
+      scheduler?: SchedulerService
+    }
   ): TykEntityProvider[] {
-    const tykConfig = readTykConfiguration(config);
+    const tykConfig = readTykConfiguration(options.config);
     let tykEntityProviders: TykEntityProvider[] = [];
 
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
       let ep = new TykEntityProvider({
-        logger: logger,
+        logger: options.logger,
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
       });
-      ep.init();
+      
       tykEntityProviders.push(ep);
     });
 

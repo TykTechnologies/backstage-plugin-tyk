@@ -12,7 +12,7 @@ export default async function createPlugin(
   const builder: CatalogBuilder = CatalogBuilder.create(env);
   builder.addProcessor(new ScaffolderEntitiesProcessor());
 
-  const tykEPs = TykEntityProvider.fromConfigNoInit(env.config, env.logger);
+  const tykEPs = TykEntityProvider.fromConfig({ config:env.config, logger:env.logger });
   builder.addEntityProvider(tykEPs);  
 
   const {processingEngine, router} = await builder.build();
