@@ -44,7 +44,15 @@ export class TykEntityProvider implements EntityProvider {
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
       });
-      
+
+      if (options.scheduler) {
+        ep.registerSchedule(options.scheduler);
+      }
+
+      if (options.router) {
+        ep.registerRoutes(options.router);
+      }
+
       tykEntityProviders.push(ep);
     });
 
