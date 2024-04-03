@@ -12,16 +12,14 @@ export default async function createPlugin(
   const builder: CatalogBuilder = CatalogBuilder.create(env);
   builder.addProcessor(new ScaffolderEntitiesProcessor());
 
-  const tykEPs = TykEntityProvider.fromConfig({ config:env.config, logger:env.logger });
+  const tykEPs = TykEntityProvider.fromConfig({ config:env.config, logger:env.logger, scheduler: env.scheduler });
   builder.addEntityProvider(tykEPs);  
 
   const {processingEngine, router} = await builder.build();
   await processingEngine.start();
 
   await Promise.all(tykEPs.map(async (ep) => {
-    await ep.init();
     await ep.registerRoutes(router);
-    await ep.registerSchedule(env.scheduler);
   }));
 
   return router;
