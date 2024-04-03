@@ -38,6 +38,10 @@ export class TykEntityProvider implements EntityProvider {
     const tykConfig = readTykConfiguration(options.config);
     let tykEntityProviders: TykEntityProvider[] = [];
 
+    if (!tykConfig.globalOptions.router.enabled && !tykConfig.globalOptions.scheduler.enabled) {
+      throw new Error(`Tyk entity provider has no methods enabled for data collection - no data will be imported`);
+    }
+
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
       let ep = new TykEntityProvider({
         logger: options.logger,
@@ -82,10 +86,6 @@ export class TykEntityProvider implements EntityProvider {
 
     if (!this.connection) {
       throw new Error('Not initialized');
-    }
-
-    if (!this.globalOptionsConfig.router.enabled && !this.globalOptionsConfig.scheduler.enabled) {
-      throw new Error(`Tyk entity provider has no methods enabled for data collection - no data will be imported`);
     }
 
     try {
