@@ -19,7 +19,7 @@ export const catalogModuleTykEntityProvider = createBackendModule({
       async init({ catalog, config, logger, http, scheduler }) {
         const router = Router();
         catalog.addEntityProvider(
-          TykEntityProvider.fromConfig(config, loggerToWinstonLogger(logger), router, scheduler),
+          TykEntityProvider.fromConfig({ config: config, logger: loggerToWinstonLogger(logger), router: router, scheduler: scheduler }),
         );
         http.use(router);
       },
