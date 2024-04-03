@@ -61,7 +61,7 @@ export class TykEntityProvider implements EntityProvider {
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
       });
-      ep.init(router, scheduler);
+      ep.init();
       tykEntityProviders.push(ep);
     });
 
