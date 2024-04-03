@@ -70,13 +70,13 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   constructor(props: { logger: Logger; globalOptionsConfig: TykGlobalOptionsConfig, dashboardConfig: TykDashboardConfig }) {
-    this.logger = props.logger;
     this.globalOptionsConfig = props.globalOptionsConfig;
     this.dashboardConfig = props.dashboardConfig;
     this.dashboardClient = new TykDashboardClient({
       log: props.logger,
       cfg: this.dashboardConfig,
     });
+    this.logger = props.logger.child({ entityProvider: this.getProviderName() });
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
