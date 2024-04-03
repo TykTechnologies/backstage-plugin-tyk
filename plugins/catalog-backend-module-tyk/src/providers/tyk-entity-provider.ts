@@ -43,6 +43,8 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
+      options.logger.debug(`Initializing Tyk entity provider for ${tykDashboardConfig.name} Dashboard`);
+
       let ep = new TykEntityProvider({
         logger: options.logger,
         globalOptionsConfig: tykConfig.globalOptions,
@@ -60,6 +62,8 @@ export class TykEntityProvider implements EntityProvider {
       }
 
       tykEntityProviders.push(ep);
+  
+      options.logger.info(`Tyk entity provider initialized for ${tykDashboardConfig.name} Dashboard`);
     });
 
     return tykEntityProviders;
@@ -81,21 +85,15 @@ export class TykEntityProvider implements EntityProvider {
 
   getProviderName(): string {
     return `tyk-entity-provider-${this.dashboardConfig.name}`;
-  } 
+  }
 
   async init(): Promise<void> {
-    this.logger.debug(`Initializing Tyk entity provider for ${this.dashboardConfig.name} Dashboard`);
-
     if (!this.connection) {
       throw new Error('Not initialized');
     }
 
-    
-
     // perform an initial sync to populate data, so that data is available immediately
     await this.importAllDiscoveredEntities();
-
-    this.logger.info(`Tyk entity provider initialized for ${this.dashboardConfig.name} Dashboard`);
   }
 
   async checkClientConnectivity() {
