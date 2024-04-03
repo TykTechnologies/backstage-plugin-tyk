@@ -123,7 +123,7 @@ export class TykEntityProvider implements EntityProvider {
       let frequency: number = this.globalOptionsConfig.scheduler.frequency || this.defaultSchedulerFrequency;
 
       await scheduler.scheduleTask({
-        id: 'run_tyk_entity_provider_refresh',
+        id: `run_tyk_entity_provider_${this.dashboardConfig.name}_refresh`,
         fn: async () => {
           await this.importAllDiscoveredEntities();
         },
