@@ -49,6 +49,8 @@ export class TykEntityProvider implements EntityProvider {
         dashboardConfig: tykDashboardConfig,
       });
 
+      ep.checkClientConnectivity();
+
       if (options.scheduler) {
         ep.registerSchedule(options.scheduler);
       }
@@ -88,20 +90,24 @@ export class TykEntityProvider implements EntityProvider {
       throw new Error('Not initialized');
     }
 
+    
+
+    // perform an initial sync to populate data, so that data is available immediately
+    await this.importAllDiscoveredEntities();
+
+    this.logger.info(`Tyk entity provider initialized for ${this.dashboardConfig.name} Dashboard`);
+  }
+
+  async checkClientConnectivity() {
     try {
       if (await this.dashboardClient.checkDashboardConnectivity()) {
-        this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);      
+        this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);
       } else {
         this.logger.error(`Tyk ${this.dashboardConfig.name} Dashboard failed connectivity check - check that configuration is correct`);
       }
     } catch (error) {
       this.logger.error(`Error performing connectivity check for Tyk ${this.dashboardConfig.name} Dashboard:`, error);
     }
-
-    // perform an initial sync to populate data, so that data is available immediately
-    await this.importAllDiscoveredEntities();
-
-    this.logger.info(`Tyk entity provider initialized for ${this.dashboardConfig.name} Dashboard`);
   }
 
   async registerRoutes(router: Router) {
