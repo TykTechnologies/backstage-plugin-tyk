@@ -26,6 +26,7 @@ export class TykEntityProvider implements EntityProvider {
   private readonly dashboardConfig: TykDashboardConfig;
   private readonly globalOptionsConfig: TykGlobalOptionsConfig;
   private readonly defaultSchedulerFrequency = 5;
+  private scheduleFn: () => Promise<void> = async () => {};
 
   static fromConfig(
     options: {
@@ -49,14 +50,11 @@ export class TykEntityProvider implements EntityProvider {
         logger: options.logger,
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
+        scheduler: options.scheduler,
       });
 
       ep.checkClientConnectivity();
-
-      if (options.scheduler) {
-        ep.registerSchedule(options.scheduler);
-      }
-
+      
       if (options.router) {
         ep.registerRoutes(options.router);
       }
@@ -69,18 +67,32 @@ export class TykEntityProvider implements EntityProvider {
     return tykEntityProviders;
   }
 
-  constructor(props: { logger: Logger; globalOptionsConfig: TykGlobalOptionsConfig, dashboardConfig: TykDashboardConfig }) {
-    this.globalOptionsConfig = props.globalOptionsConfig;
-    this.dashboardConfig = props.dashboardConfig;
+  private constructor(
+    options: { 
+      logger: Logger; 
+      globalOptionsConfig: TykGlobalOptionsConfig, 
+      dashboardConfig: TykDashboardConfig,
+      scheduler?: SchedulerService
+    }
+  ) {
+    this.globalOptionsConfig = options.globalOptionsConfig;
+    this.dashboardConfig = options.dashboardConfig;
     this.dashboardClient = new TykDashboardClient({
-      log: props.logger,
+      log: options.logger,
       cfg: this.dashboardConfig,
     });
-    this.logger = props.logger.child({ entityProvider: this.getProviderName() });
+    this.logger = options.logger.child({ entityProvider: this.getProviderName() });
+    // prepare the schedule for creation later, after the catalog connection is established
+    // if (options.scheduler) {
+    //   this.scheduleFn = this.createScheduleFn(options.scheduler)
+    // }
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
+    // create the schedule, now that the connection is established
+    // attempting to do so before this point will result in an error
+    await this.scheduleFn();
   }
 
   getProviderName(): string {
@@ -113,6 +125,12 @@ export class TykEntityProvider implements EntityProvider {
         await this.importAllDiscoveredEntities();
         res.status(200).end();
       });
+    }
+  }
+
+  private createScheduleFn(scheduler: PluginTaskScheduler): () => Promise<void> {
+    return async () => {
+      this.registerSchedule(scheduler);
     }
   }
 
