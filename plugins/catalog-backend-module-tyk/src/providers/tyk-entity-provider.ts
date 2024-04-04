@@ -83,9 +83,9 @@ export class TykEntityProvider implements EntityProvider {
     });
     this.logger = options.logger.child({ entityProvider: this.getProviderName() });
     // prepare the schedule for creation later, after the catalog connection is established
-    // if (options.scheduler) {
-    //   this.scheduleFn = this.createScheduleFn(options.scheduler)
-    // }
+    if (options.scheduler) {
+      this.scheduleFn = this.createScheduleFn(options.scheduler);
+    }
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -134,7 +134,7 @@ export class TykEntityProvider implements EntityProvider {
     }
   }
 
-  async registerSchedule(scheduler: PluginTaskScheduler) {
+  private async registerSchedule(scheduler: PluginTaskScheduler) {
     if (this.globalOptionsConfig.scheduler.enabled) {
       this.logger.debug("Scheduling Tyk entity provider task");
 
