@@ -1,13 +1,17 @@
 import React from 'react';
 import { Button, Card, TextField } from "@material-ui/core";
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
-import { kebabCase } from 'lodash'
 
 export const CreateApiComponent = () => {
   const config = useApi(configApiRef);
   const backendUrl = config.getString('backend.baseUrl') + '/api/proxy/tyk/apis';
+  const kebabCase: (s: string) => string = (s: string) => {
+    return s.replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+  }
 
-  const handleClick = async (event) => {
+  const handleClick = async (event: any) => {
     event.preventDefault();
     console.log(event);
     const apiNameValue = event.target.apiname.value;

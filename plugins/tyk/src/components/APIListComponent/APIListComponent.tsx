@@ -1,5 +1,5 @@
 import React from 'react';
-import {Table, TableColumn, Progress, ResponseErrorPanel, LinkButton} from '@backstage/core-components';
+import {Table, TableColumn, Progress, ResponseErrorPanel} from '@backstage/core-components';
 // import {fetchApiRef, useApi} from '@backstage/core-plugin-api';
 import useAsync from 'react-use/lib/useAsync';
 import {Button} from "@material-ui/core";
@@ -28,7 +28,7 @@ export const DenseTable = ({apiDefinitions}: DenseTableProps) => {
     {title: 'Actions', field: 'actions'},
   ];
 
-  const handleKeyRequest = async (apiDefinition) => {
+  const handleKeyRequest = async (apiDefinition: any) => {
     // eslint-disable-next-line no-console
     console.log("key request for API", apiDefinition);
 
@@ -98,9 +98,9 @@ export const APIListComponent = () => {
     const data = await response.json();
     const apis = data.apis;
 
-    const formatted = [];
+    const formatted: any[] = [];
 
-    apis.forEach(api => {
+    apis.forEach((api: { api_definition: { api_id: any; name: any; active: any; use_keyless: any; proxy: { listen_path: any; }; }; }) => {
       formatted.push({
         id: api.api_definition.api_id,
         name: api.api_definition.name,
