@@ -43,6 +43,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
             not_versioned: true,
             versions: {}
           },
+          tags: [],
           proxy: {
             listen_path: `/${ctx.input.listenPath}/`,
             target_url: ctx.input.targetUrl,
