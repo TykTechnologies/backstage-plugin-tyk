@@ -29,6 +29,7 @@ export class TykEntityProvider implements EntityProvider {
   private static kebabCase: (s: string) => string = (s: string) => {
     return s.replace(/([a-z])([A-Z])/g, "$1-$2")
     .replace(/[\s_]+/g, '-')
+    .replace(/[()]/g, '')
     .toLowerCase();
   }
 
