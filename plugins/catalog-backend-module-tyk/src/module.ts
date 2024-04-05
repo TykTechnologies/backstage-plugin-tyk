@@ -21,6 +21,13 @@ export const catalogModuleTykEntityProvider = createBackendModule({
         catalog.addEntityProvider(
           TykEntityProvider.fromConfig({ config: config, logger: loggerToWinstonLogger(logger), router: router, scheduler: scheduler }),
         );
+        // enable unauthenticated calls to tyk endpoints
+        // webhook requests from Tyk Dashboard will not contain any credentials
+        // path equates to /api/catalog/tyk/*
+        http.addAuthPolicy({
+          path: "/tyk",
+          allow: "unauthenticated"
+        });
         http.use(router);
       },
     });
