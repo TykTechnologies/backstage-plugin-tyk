@@ -2,12 +2,14 @@ import {
   API,
   APIListResponse,
   APIListResponseSchema, GatewayResponse,
-  TykDashboardConfig,
   TykDashboardSystemNodesResponse
-} from "../schemas";
+} from "./types";
+
+import { TykDashboardConfig } from "../providers/types";
+
 import {Logger} from "winston";
 
-export class DashboardClient {
+export class TykDashboardClient {
 
   private config: TykDashboardConfig;
   private log: Logger;

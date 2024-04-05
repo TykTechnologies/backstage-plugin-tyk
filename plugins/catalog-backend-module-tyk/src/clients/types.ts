@@ -53,28 +53,6 @@ export const APIListResponseSchema = z.object({
   apis: z.array(APISchema),
 });
 
-export const TykDashboardConfigSchema = z.object({
-  host: z.string(),
-  token: z.string(),
-  name: z.string(),
-  defaults: z.object({
-    owner: z.string().optional(),
-    system: z.string().optional(),
-    lifecycle: z.string().optional(),
-  }).optional(),
-});
-
-export const TykConfigSchema = z.object({
-  router: z.object({
-    enabled: z.boolean(),
-  }),
-  scheduler: z.object({
-    enabled: z.boolean(),
-    frequency: z.number().optional(),
-  }),
-  importCategoriesAsTags: z.boolean().optional(),
-  dashboards: z.array(TykDashboardConfigSchema),
-});
 
 export const SystemNodesSchema = z.object({
   nodes: z.array(
@@ -112,7 +90,5 @@ export type enrichedGateway = {
 export type APIListResponse = z.infer<typeof APIListResponseSchema>;
 export type API = z.infer<typeof APISchema>;
 export type ApiEvent = z.infer<typeof ApiEventSchema>;
-export type TykDashboardConfig = z.infer<typeof TykDashboardConfigSchema>;
-export type TykConfig = z.infer<typeof TykConfigSchema>;
 export type TykDashboardSystemNodesResponse = z.infer<typeof DashboardSystemNodesResponseSchema>;
 export type GatewayResponse = z.infer<typeof GatewayResponseSchema>;

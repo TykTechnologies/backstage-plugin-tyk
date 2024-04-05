@@ -4,91 +4,149 @@ import {
   ANNOTATION_ORIGIN_LOCATION,
   ANNOTATION_SOURCE_LOCATION,
   ANNOTATION_VIEW_URL,
-  ApiEntityV1alpha1, ComponentEntityV1alpha1, SystemEntityV1alpha1
+  ApiEntityV1alpha1, ComponentEntityV1alpha1
 } from '@backstage/catalog-model'
 import {DeferredEntity, EntityProvider, EntityProviderConnection,} from '@backstage/plugin-catalog-node';
 import {Logger} from 'winston';
 import {Router} from 'express';
 import {PluginTaskScheduler} from '@backstage/backend-tasks';
-import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
-import {API, TykDashboardConfig, TykConfig, enrichedGateway} from "./schemas/schemas";
-import {DashboardClient} from "./schemas/client/client";
-import { string } from 'zod';
+import {API, enrichedGateway} from "../clients/types";
+import {TykDashboardConfig, TykGlobalOptionsConfig} from "./types";
+import {TykDashboardClient} from "../clients/tyk-dashboard-client";
+import { Config } from '@backstage/config';
+import { readTykConfiguration } from './config';
+import { SchedulerService } from '@backstage/backend-plugin-api';
 
 export class TykEntityProvider implements EntityProvider {
   private readonly logger: Logger;
   private connection?: EntityProviderConnection;
-  private dashboardClient: DashboardClient;
-  private dashboardConfig?: TykDashboardConfig;
-  private readonly tykConfig: TykConfig;
-  private readonly dashboardName: string;
-  private readonly defaultSchedulerFrequency = 5
+  private dashboardClient: TykDashboardClient;
+  private readonly dashboardConfig: TykDashboardConfig;
+  private readonly globalOptionsConfig: TykGlobalOptionsConfig;
+  private readonly defaultSchedulerFrequency = 5;
+  private scheduleFn: () => Promise<void> = async () => {};
+  private static kebabCase: (s: string) => string = (s: string) => {
+    return s.replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, '-')
+    .replace(/[()]/g, '')
+    .toLowerCase();
+  }
 
-  constructor(props: { logger: Logger; config: TykConfig, dashboardName: string }) {
-    this.logger = props.logger;
-    this.tykConfig = props.config;
-    this.dashboardName = props.dashboardName;
+  static fromConfig(
+    options: {
+      config: Config,
+      logger: Logger,
+      router?: Router,
+      scheduler?: SchedulerService
+    }
+  ): TykEntityProvider[] {
+    const tykConfig = readTykConfiguration(options.config);
+    let tykEntityProviders: TykEntityProvider[] = [];
 
-    this.dashboardConfig = this.tykConfig.dashboards.find((dashboard: TykDashboardConfig): boolean => dashboard.name == props.dashboardName)!;
-    this.dashboardClient = new DashboardClient({
-      log: props.logger,
+    if (!tykConfig.globalOptions.router.enabled && !tykConfig.globalOptions.scheduler.enabled) {
+      throw new Error(`Tyk entity provider has no methods enabled for data collection - no data will be imported`);
+    }
+
+    tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
+      options.logger.debug(`Initializing Tyk entity provider for ${tykDashboardConfig.name} Dashboard`);
+
+      let ep = new TykEntityProvider({
+        logger: options.logger,
+        globalOptionsConfig: tykConfig.globalOptions,
+        dashboardConfig: tykDashboardConfig,
+        scheduler: options.scheduler,
+      });
+
+      ep.checkClientConnectivity();
+      
+      if (options.router) {
+        ep.registerRoutes(options.router);
+      }
+
+      tykEntityProviders.push(ep);
+  
+      options.logger.info(`Tyk entity provider initialized for ${tykDashboardConfig.name} Dashboard`);
+    });
+
+    return tykEntityProviders;
+  }
+
+  private constructor(
+    options: { 
+      logger: Logger; 
+      globalOptionsConfig: TykGlobalOptionsConfig, 
+      dashboardConfig: TykDashboardConfig,
+      scheduler?: SchedulerService
+    }
+  ) {
+    this.globalOptionsConfig = options.globalOptionsConfig;
+    this.dashboardConfig = options.dashboardConfig;
+    this.dashboardClient = new TykDashboardClient({
+      log: options.logger,
       cfg: this.dashboardConfig,
     });
+    this.logger = options.logger.child({ entityProvider: this.getProviderName() });
+    // prepare the schedule for creation later, after the catalog connection is established
+    if (options.scheduler) {
+      this.scheduleFn = this.createScheduleFn(options.scheduler);
+    }
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
+    // create the schedule, now that the connection is established
+    // attempting to do so before this point will result in an error
+    await this.scheduleFn();
   }
 
   getProviderName(): string {
-    return `tyk-entity-provider-${this.dashboardName}`;
+    return `tyk-entity-provider-${this.dashboardConfig.name}`;
   }
 
-  async init(router: Router, scheduler: PluginTaskScheduler): Promise<void> {
-    this.logger.debug(`Initializing Tyk entity provider for ${this.dashboardName} Dashboard`);
-
-    if (!this.connection) {
-      throw new Error('Not initialized');
-    }
-
+  async checkClientConnectivity() {
     try {
       if (await this.dashboardClient.checkDashboardConnectivity()) {
-        this.logger.debug(`Found Tyk Dashboard ${this.dashboardName}`);      
+        this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);
       } else {
-        this.logger.error(`Tyk ${this.dashboardName} Dashboard failed connectivity check - check that configuration is correct`);
+        this.logger.error(`Tyk ${this.dashboardConfig.name} Dashboard failed connectivity check - check that configuration is correct`);
       }
     } catch (error) {
-      this.logger.error(`Error performing connectivity check for Tyk ${this.dashboardName} Dashboard:`, error);
+      this.logger.error(`Error performing connectivity check for Tyk ${this.dashboardConfig.name} Dashboard:`, error);
     }
+  }
 
-    if (!this.tykConfig.router.enabled && !this.tykConfig.scheduler.enabled) {
-      this.logger.warn(`Tyk entity provider for ${this.dashboardName} Dashboard has no methods enabled for data collection - no data will be imported`);
-      return;
-    }
-
-    if (this.tykConfig.router.enabled) {
+  async registerRoutes(router: Router) {
+    if (this.globalOptionsConfig.router.enabled) {
       this.logger.debug("Registering Tyk entity provider routes");
       // for importing all APIs from the Tyk Dashboard, for both GET and POST
       // the POST request is to support webhook calls from Tyk Dashboard
       // these routes are accessible via the catalog api path /api/catalog/tyk/[dashboard-config-name]/sync
-      router.get(`/tyk/${this.dashboardName}/sync`, async (_req, res) => {
+      router.get(`/tyk/${this.dashboardConfig.name}/sync`, async (_req, res) => {
         await this.importAllDiscoveredEntities();
         res.status(200).end();
       });
-      router.post(`/tyk/${this.dashboardName}/sync`, async (_req, res) => {
+      router.post(`/tyk/${this.dashboardConfig.name}/sync`, async (_req, res) => {
         await this.importAllDiscoveredEntities();
         res.status(200).end();
       });
     }
+  }
 
-    if (this.tykConfig.scheduler.enabled) {
+  private createScheduleFn(scheduler: PluginTaskScheduler): () => Promise<void> {
+    return async () => {
+      this.registerSchedule(scheduler);
+    }
+  }
+
+  private async registerSchedule(scheduler: PluginTaskScheduler) {
+    if (this.globalOptionsConfig.scheduler.enabled) {
       this.logger.debug("Scheduling Tyk entity provider task");
 
-      let frequency: number = this.tykConfig.scheduler.frequency || this.defaultSchedulerFrequency;
+      let frequency: number = this.globalOptionsConfig.scheduler.frequency || this.defaultSchedulerFrequency;
 
       await scheduler.scheduleTask({
-        id: 'run_tyk_entity_provider_refresh',
+        id: `run_tyk_entity_provider_${this.dashboardConfig.name}_refresh`,
         fn: async () => {
           await this.importAllDiscoveredEntities();
         },
@@ -96,11 +154,6 @@ export class TykEntityProvider implements EntityProvider {
         timeout: {minutes: 1},
       });
     }
-
-    // perform an initial sync to populate data, so that data is available immediately
-    await this.importAllDiscoveredEntities();
-
-    this.logger.info(`Tyk entity provider initialized for ${this.dashboardName} Dashboard`);
   }
 
   toDashboardComponentEntity(): ComponentEntityV1alpha1 {
@@ -108,8 +161,8 @@ export class TykEntityProvider implements EntityProvider {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
-        name: `tyk-dashboard-${this.dashboardName}`,
-        title: `Tyk Dashboard: ${this.dashboardName}`,
+        name: `tyk-dashboard-${this.dashboardConfig.name}`,
+        title: `Tyk Dashboard: ${this.dashboardConfig.name}`,
         description: 'Tyk Dashboard',
         annotations: {
           [ANNOTATION_LOCATION]: `url:${this.dashboardConfig?.host}`,
@@ -129,19 +182,20 @@ export class TykEntityProvider implements EntityProvider {
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`,
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`,
         system: `${this.dashboardConfig?.defaults?.system || ''}`,
-        providesApis: [`tyk-dashboard-api-${this.dashboardName}`, `tyk-dashboard-admin-api-${this.dashboardName}`, `tyk-dashboard-system-api-${this.dashboardName}`],
-        consumesApis: [`default/tyk-gateway-api-${this.dashboardName}`],
+        providesApis: [`tyk-dashboard-api-${this.dashboardConfig.name}`, `tyk-dashboard-admin-api-${this.dashboardConfig.name}`, `tyk-dashboard-system-api-${this.dashboardConfig.name}`],
+        consumesApis: [`default/tyk-gateway-api-${this.dashboardConfig.name}`],
         dependsOn: [
-          `component:default/tyk-gateway-${this.dashboardName}`,
-          `resource:default/tyk-dashboard-storage-${this.dashboardName}`,
+          `component:default/tyk-gateway-${this.dashboardConfig.name}`,
+          `resource:default/tyk-dashboard-storage-${this.dashboardConfig.name}`,
         ]
       }
     };
   }
 
   toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
+
     const provides: string[] = apis.reduce((collector: string[], api: API) => {
-      const apiEntityName = `${kebabCase(this.dashboardName)}-${api.api_definition.api_id}`;
+      const apiEntityName = `${TykEntityProvider.kebabCase(this.dashboardConfig.name)}-${api.api_definition.api_id}`;
       if (!gateway.segmented) {
         return [...collector, apiEntityName];
       }
@@ -155,15 +209,15 @@ export class TykEntityProvider implements EntityProvider {
       return collector;
     }, []);
     
-    this.logger.debug(`Generating entity for Tyk Gateway ${gateway.id} from ${this.dashboardName} Dashboard, hosted on ${gateway.hostname} and is ${gateway.segmented ? `segmented with tags ${JSON.stringify(gateway.tags)}`:"not segmented"}, providing ${provides.length} APIs: ${JSON.stringify(provides)}`);
+    this.logger.debug(`Generating entity for Tyk Gateway ${gateway.id} from ${this.dashboardConfig.name} Dashboard, hosted on ${gateway.hostname} and is ${gateway.segmented ? `segmented with tags ${JSON.stringify(gateway.tags)}`:"not segmented"}, providing ${provides.length} APIs: ${JSON.stringify(provides)}`);
 
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
-        name: `tyk-gateway-${this.dashboardName}-${gateway.id}`,
+        name: `tyk-gateway-${this.dashboardConfig.name}-${gateway.id}`,
         title: `Tyk Gateway: ${gateway.hostname}`,
-        description: `Tyk Gateway ${this.dashboardName} ${gateway.hostname} ${gateway.id}`,
+        description: `Tyk Gateway ${this.dashboardConfig.name} ${gateway.hostname} ${gateway.id}`,
         // links: [
         //   {
         //     url: `http://${node.hostname}`,
@@ -181,7 +235,7 @@ export class TykEntityProvider implements EntityProvider {
         type: 'service',
         lifecycle: `${this.dashboardConfig?.defaults?.lifecycle || ''}`, // inherit from dashboard
         owner: `${this.dashboardConfig?.defaults?.owner || ''}`, // inherit from dashboard
-        subcomponentOf: `tyk-dashboard-${this.dashboardName}`,
+        subcomponentOf: `tyk-dashboard-${this.dashboardConfig.name}`,
         system: `${this.dashboardConfig?.defaults?.system || ''}`, // inherit from dashboard
         providesApis: provides,
       }
@@ -208,7 +262,7 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.debug(`Generating Tyk API entity for "${title}" from ${this.dashboardName} Dashboard`);
+    this.logger.debug(`Generating Tyk API entity for "${title}" from ${this.dashboardConfig.name} Dashboard`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
@@ -223,7 +277,7 @@ export class TykEntityProvider implements EntityProvider {
 
     // name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
     // this is to avoid collisions between identical APIs in different Tyk dashboards
-    const name: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
+    const name: string = `${TykEntityProvider.kebabCase(config.name)}-${api.api_definition.api_id}`;
     let linkPathPart: string = "designer";
     const apiEditUrl: string = `${config.host}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
@@ -280,10 +334,10 @@ export class TykEntityProvider implements EntityProvider {
         labels: {
           'tyk.io/active': api.api_definition.active.toString(),
           'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(title),
+          'tyk.io/name': TykEntityProvider.kebabCase(title),
           'tyk.io/authentication': authMechamism(api),
         },
-        tags: this.tykConfig.importCategoriesAsTags ? tags : [],
+        tags: this.globalOptionsConfig.importCategoriesAsTags ? tags : [],
         name: name,
         title: title,
       },
@@ -320,14 +374,14 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async discoverAllEntities(): Promise<DeferredEntity[]> {
-    this.logger.debug(`Discovering Tyk entities for ${this.dashboardName} Dashboard`);
+    this.logger.debug(`Discovering Tyk entities for ${this.dashboardConfig.name} Dashboard`);
 
     const deferredEntities: DeferredEntity[] = [];
 
     if (await this.dashboardClient.checkDashboardConnectivity()) {
-      this.logger.debug(`Found Tyk Dashboard ${this.dashboardName}`);      
+      this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);      
     } else {
-      throw new Error(`Could not connect to Tyk ${this.dashboardName} Dashboard`);
+      throw new Error(`Could not connect to Tyk ${this.dashboardConfig.name} Dashboard`);
     }  
 
     const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDashboardComponentEntity();
@@ -344,7 +398,7 @@ export class TykEntityProvider implements EntityProvider {
     });
 
     if (apiEntities == undefined || apiEntities.length == 0) {
-      this.logger.warn(`No Tyk API definitions found at ${this.dashboardName} Dashboard`);
+      this.logger.warn(`No Tyk API definitions found at ${this.dashboardConfig.name} Dashboard`);
     }
 
     deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
@@ -352,7 +406,7 @@ export class TykEntityProvider implements EntityProvider {
       locationKey: `${this.getProviderName}`,
     })));
 
-    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
+    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardConfig.name} Dashboard`);
 
     // discover the gateways
     const enrichedGateways: enrichedGateway[] = [];
@@ -370,10 +424,10 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     if (enrichedGateways == undefined || enrichedGateways.length == 0) {
-      this.logger.warn(`No Tyk Gateways found at ${this.dashboardName} Dashboard`);
+      this.logger.warn(`No Tyk Gateways found at ${this.dashboardConfig.name} Dashboard`);
     }
 
-    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardName} Dashboard`);
+    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardConfig.name} Dashboard`);
 
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
       return this.toGatewayComponentEntity(apis, gateway);
@@ -388,16 +442,20 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   async importAllDiscoveredEntities(): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not initialized');
+    }
+
     // try/catch block is used to avoid performing a sync if an error occurs, as it could result in an incorrect data mutation
     try {
       const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
-      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"} from ${this.dashboardName} Dashboard`);
+      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"} from ${this.dashboardConfig.name} Dashboard`);
       await this.connection!.applyMutation({
         type: 'full',
         entities: deferredEntities,
       });        
     } catch (error) {
-      this.logger.error(`Error importing Tyk entities from ${this.dashboardName} Dashboard:`, error);
+      this.logger.error(`Error importing Tyk entities from ${this.dashboardConfig.name} Dashboard:`, error);
     }
   }
 }

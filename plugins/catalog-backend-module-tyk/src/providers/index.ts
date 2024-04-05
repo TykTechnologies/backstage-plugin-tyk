@@ -1,0 +1,1 @@
+export { TykEntityProvider } from "./tyk-entity-provider";

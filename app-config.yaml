@@ -121,12 +121,13 @@ catalog:
     #     - allow: [User, Group]
 
 tyk:
-  router:
-    enabled: true
-  scheduler:
-    enabled: true
-    frequency: 5
-  importCategoriesAsTags: true
+  globalOptions:
+    router:
+      enabled: true
+    scheduler:
+      enabled: true
+      frequency: 5
+    importCategoriesAsTags: true
   dashboards:
     - host: http://localhost:3000
       token: ${TYKDASHBOARDAPITOKEN}
