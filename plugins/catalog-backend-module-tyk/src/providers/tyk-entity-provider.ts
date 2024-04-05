@@ -10,7 +10,6 @@ import {DeferredEntity, EntityProvider, EntityProviderConnection,} from '@backst
 import {Logger} from 'winston';
 import {Router} from 'express';
 import {PluginTaskScheduler} from '@backstage/backend-tasks';
-import {kebabCase} from 'lodash';
 import yaml from 'js-yaml';
 import {API, enrichedGateway} from "../clients/types";
 import {TykDashboardConfig, TykGlobalOptionsConfig} from "./types";
@@ -27,6 +26,11 @@ export class TykEntityProvider implements EntityProvider {
   private readonly globalOptionsConfig: TykGlobalOptionsConfig;
   private readonly defaultSchedulerFrequency = 5;
   private scheduleFn: () => Promise<void> = async () => {};
+  private static kebabCase: (s: string) => string = (s: string) => {
+    return s.replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+  }
 
   static fromConfig(
     options: {
@@ -188,8 +192,9 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   toGatewayComponentEntity(apis: API[], gateway: enrichedGateway): ComponentEntityV1alpha1 {
+
     const provides: string[] = apis.reduce((collector: string[], api: API) => {
-      const apiEntityName = `${kebabCase(this.dashboardConfig.name)}-${api.api_definition.api_id}`;
+      const apiEntityName = `${TykEntityProvider.kebabCase(this.dashboardConfig.name)}-${api.api_definition.api_id}`;
       if (!gateway.segmented) {
         return [...collector, apiEntityName];
       }
@@ -271,7 +276,7 @@ export class TykEntityProvider implements EntityProvider {
 
     // name is composed of a namespace and an api id, the namespace is taken from the Tyk dashboard configuration
     // this is to avoid collisions between identical APIs in different Tyk dashboards
-    const name: string = `${kebabCase(config.name)}-${api.api_definition.api_id}`;
+    const name: string = `${TykEntityProvider.kebabCase(config.name)}-${api.api_definition.api_id}`;
     let linkPathPart: string = "designer";
     const apiEditUrl: string = `${config.host}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
@@ -328,7 +333,7 @@ export class TykEntityProvider implements EntityProvider {
         labels: {
           'tyk.io/active': api.api_definition.active.toString(),
           'tyk.io/apiId': api.api_definition.api_id,
-          'tyk.io/name': kebabCase(title),
+          'tyk.io/name': TykEntityProvider.kebabCase(title),
           'tyk.io/authentication': authMechamism(api),
         },
         tags: this.globalOptionsConfig.importCategoriesAsTags ? tags : [],
