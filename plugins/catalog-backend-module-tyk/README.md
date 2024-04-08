@@ -68,7 +68,7 @@ Follow this approach to configure the plugin for Backstage deployments using the
 
 Add this line to the Backstage `packages/backend/src/index.ts` file:
 
-```
+```ts
 backend.add(import('@davegarvey/plugin-catalog-backend-module-tyk/alpha'));
 ```
 
