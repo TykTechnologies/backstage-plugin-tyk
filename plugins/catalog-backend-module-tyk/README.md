@@ -153,6 +153,8 @@ await Promise.all(tykEPs.map(async (ep) => {
 
 Put the lines after `await processingEngine.start();` but before `return router;`.
 
+Note that this only covers the Backstage side of the process - see the **Dynamic Data Import** section below for information on the Tyk side.
+
 ##### Full Example
 
 This example shows a fully edited `packages/backend/src/plugins/catalog.ts` file, with the three steps marked with comments `Step 1`, `Step 2` and `Step 3`:
@@ -257,6 +259,41 @@ The default values can be overridden on a per-entity basis by providing the equi
 The entity provider will check for the presence of this data when importing the API definition, and will override the default values accordingly. 
 
 It's not necessary to specify and override all three fields - it's possible to provide just one or two.
+
+## Dynamic Data Import
+
+When the router option is enabled in the entity provider config, the entity provide sets up endpoints in Backstage that the Tyk Dashboard can send a webhook request to Backstage when it detects a data change. Thiss allow Backstage entity data to be updated quickly after it is changed in the Tyk Dashboard.
+
+### Endpoint Paths
+
+The Backstage endpoints are based on the `name` of the Dashboard in the Backstage configuration, for example:
+
+```
+/api/catalog/tyk/development/sync
+```
+
+Here `development` is the `name` given to the Dashboard in the Backstage configuration. Since the `name` is unique, each dashboard configuration its assigned its own endpoint. The `name` is the only part of the path to change, the rest remains the same across all dashboard configurations.
+
+### Tyk Dashboard Organisation Configuration
+
+To configure the Tyk Dashboard to make the webhook request, the Tyk *organisation* object needs to be provided with the Backstage URL.
+
+To do this, update your Tyk organisation JSON object via the Dashboard Admin API. In the organisation JSON, add an `api_event` object to the `event_options` section. For example:
+
+```json
+{
+  "api_event": {
+    "webhook": "http://my-backstage-backend:7007/api/catalog/tyk/development/sync",
+    "email": "",
+    "redis": false
+  }
+}
+```
+
+Make sure that:
+1. The `webhook` URL resolves to the Backstage backend deployment from the Tyk Dashboard.
+2. The `webhook` URL path uses the dashboard configuration name specified in the Backstage `app-config.yaml` - the example value `development` is based on the example above.
+
 
 ## Logging
 
