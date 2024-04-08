@@ -2,7 +2,7 @@ The Tyk Backstage entity provider imports Tyk API definitions and components int
 
 ## Getting Started
 
-### 1. Installation
+### 1. Package Installation
 
 To install the package, run this command from the Backstage root directory:
 
@@ -10,9 +10,9 @@ To install the package, run this command from the Backstage root directory:
 yarn --cwd packages/backend add @davegarvey/plugin-catalog-backend-module-tyk
 ```
 
-### 2. Configuration
+### 2. Module Configuration
 
-To configure the Tyk entity provider, add a `tyk` root section to the Backstage `app-config.yaml` file.
+To configure the Tyk entity provider, add a `tyk` section to the root of the Backstage `app-config.yaml` file.
 
 This is an example configuration: 
 
@@ -35,11 +35,13 @@ tyk:
         lifecycle: development
 ```
 
+Note that it is possible to use environment variables, such as `${TYKDASHBOARDAPITOKEN}` in this example.
+
 The configuration options are as follows:
 
 Key | Purpose
 ---|---
-`tyk` | Configuration namespace for the Tyk entity provider
+`tyk` | Backstage configuration namespace for the Tyk entity provider
 `tyk.globalOptions` | Options that apply to all Tyk Dashboards registered in `tyk.dashboards`
 `tyk.globalOptions.router.enabled` | If set to `true`, registers endpoints that enable the Tyk Dashboard webhooks to dynamically import Backstage entities
 `tyk.globalOptions.scheduler.enabled` | If set to `true`, Adds a scheduled task to Backstage that imports Backstage entities on a regular basis
@@ -53,6 +55,145 @@ Key | Purpose
 `tyk.dashboards.detaults.owner` | The default Backstage owner
 `tyk.dashboards.detaults.system` | The default Backstage system
 `tyk.dashboards.detaults.lifecycle` | The default Backstage lifecycle
+
+### 3. Plugin Configuration
+
+Now that the entity provider is installed and configured, the final step is to configure the Backstage catalog to use the Tyk entity provider module. The process for this differs, depending on whether you are using the current or legacy architecture.
+
+#### Current Architecture
+
+Add this line to the Backstage `packages/backend/src/index.ts` file:
+
+```
+backend.add(import('@davegarvey/plugin-catalog-backend-module-tyk/alpha'));
+```
+
+The line can be added anywhere in the file between the lines `const backend = createBackend();` and `backend.start();`, for example:
+
+```
+import { createBackend } from '@backstage/backend-defaults';
+
+const backend = createBackend();
+
+backend.add(import('@backstage/plugin-app-backend/alpha'));
+backend.add(import('@backstage/plugin-proxy-backend/alpha'));
+backend.add(import('@backstage/plugin-scaffolder-backend/alpha'));
+backend.add(import('@backstage/plugin-techdocs-backend/alpha'));
+// Tyk entity provider
+backend.add(import('@davegarvey/plugin-catalog-backend-module-tyk/alpha'));
+
+// auth plugin
+backend.add(import('@backstage/plugin-auth-backend'));
+// See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
+backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
+// See https://github.com/backstage/backstage/blob/master/docs/auth/guest/provider.md
+
+// catalog plugin
+backend.add(import('@backstage/plugin-catalog-backend/alpha'));
+backend.add(
+  import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
+);
+
+// permission plugin
+backend.add(import('@backstage/plugin-permission-backend/alpha'));
+backend.add(
+  import('@backstage/plugin-permission-backend-module-allow-all-policy'),
+);
+
+// search plugin
+backend.add(import('@backstage/plugin-search-backend/alpha'));
+backend.add(import('@backstage/plugin-search-backend-module-catalog/alpha'));
+backend.add(import('@backstage/plugin-search-backend-module-techdocs/alpha'));
+
+backend.start();
+```
+
+#### Legacy Architecture
+
+To add the entity provider to the legacy architecture, edit the core backend catalog plugin file `packages/backend/src/plugins/catalog.ts`.
+
+There are three steps, which are explained here step-by-step. See the bottom of this section for a full example.
+
+##### 1. Add the Import
+
+Add this line to import the entity provider into the catalog plugin:
+
+```
+import { TykEntityProvider } from '@davegarvey/plugin-catalog-backend-module-tyk';
+```
+
+Put the line near the top, with the other imports.
+
+##### 2. Create the Entity Providers
+
+```
+const tykEPs = TykEntityProvider.fromConfig({ config:env.config, logger:env.logger, scheduler: env.scheduler });
+builder.addEntityProvider(tykEPs);
+```
+
+Put the line after `const builder: CatalogBuilder = CatalogBuilder.create(env);` but before `const {processingEngine, router} = await builder.build();`.
+
+##### 3. Create Routes (Optional)
+
+This is optional, depending on whether router functionality is enabled (`tyk.globalOptions.router.enabled: true`). If it is enabled, then add the following lines to register the routes:
+
+```
+await Promise.all(tykEPs.map(async (ep) => {
+  await ep.registerRoutes(router);
+}));
+```
+
+Put the lines after `await processingEngine.start();` but before `return router;`.
+
+Here is an full example, with the three steps labelled as `Step 1`, `Step 2` and `Step 3`:
+
+```
+import {CatalogBuilder} from '@backstage/plugin-catalog-backend';
+import {ScaffolderEntitiesProcessor} from '@backstage/plugin-scaffolder-backend';
+import {Router} from 'express';
+import {PluginEnvironment} from '../types';
+// Step 1
+import { TykEntityProvider } from '@davegarvey/plugin-catalog-backend-module-tyk';
+
+export default async function createPlugin(
+  env: PluginEnvironment,
+): Promise<Router> {
+  const builder: CatalogBuilder = CatalogBuilder.create(env);
+  builder.addProcessor(new ScaffolderEntitiesProcessor());
+
+  // Step 2
+  const tykEPs = TykEntityProvider.fromConfig({ config:env.config, logger:env.logger, scheduler: env.scheduler });
+  builder.addEntityProvider(tykEPs);  
+
+  const {processingEngine, router} = await builder.build();
+  await processingEngine.start();
+
+  // Step 3
+  await Promise.all(tykEPs.map(async (ep) => {
+    await ep.registerRoutes(router);
+  }));
+
+  return router;
+}
+```
+
+### 4. Validate Functionality
+
+If the entity provider module is successfully installed and configured, you will see entries in the Backstage backend application logs.
+
+On startup, the entity provider logs on initialisation:
+
+```
+2024-04-08T09:08:44.125Z catalog info Tyk entity provider initialized for development Dashboard
+```
+
+On data import, the entity provider logs on success:
+
+```
+2024-04-08T09:08:45.315Z catalog info Importing 44 Tyk entities from development Dashboard entityProvider=tyk-entity-provider-development
+```
+
+For entity provider configurations that contain multiple Tyk dashboards, there will be equivilent multiple log entries. To distinguish them from each other, the name of the Tyk dashboard configuraion is provided - in these examples it is `development`.
 
 
 ### Sequence Diagrams
