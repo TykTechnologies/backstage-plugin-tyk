@@ -1,4 +1,4 @@
-The Tyk Backstage entity provider imports Tyk API definitions and components into the Backstage catalog.
+The Tyk Backstage entity provider imports Tyk API definitions and components into the Backstage catalog directly from Tyk Dashboards.
 
 ## Getting Started
 
@@ -35,7 +35,7 @@ tyk:
         lifecycle: development
 ```
 
-Note that it is possible to use environment variables, such as `${TYKDASHBOARDAPITOKEN}` in this example.
+Note: it is possible to set configuration values using environment variables. See the use of `${TYKDASHBOARDAPITOKEN}` in the above example.
 
 The configuration options are as follows:
 
@@ -48,9 +48,9 @@ Key | Purpose
 `tyk.globalOptions.scheduler.frequency` | Frequency in minutes that the scheduled task runs
 `tyk.globalOptions.importCategoriesAsTags` | If set to `true`, Tyk API definition categories are imported as Backstage entity tags
 `tyk.dashboards` | Array of Tyk Dashboard configurations, enabling the entity provider to import data from multiple Tyk deployments
-`tyk.dashboards.host` | URL used by the entity provider to connect to the Tyk Dashboard API
+`tyk.dashboards.host` | URL used by the entity provider to connect to the Tyk Dashboard API - must include the scheme, hostname and port
 `tyk.dashboards.token` | API token used by the entity provider to authenticate with the Tyk Dashboard API - must be a Tyk Dashboard API token
-`tyk.dashboards.name` | Unique name by which the dashboard configuration is known by the entity provider
+`tyk.dashboards.name` | Unique name by which the dashboard configuration can be identified
 `tyk.dashboards.defaults` | Default Backstage values used during the import process, if no specific values are provided
 `tyk.dashboards.detaults.owner` | The default Backstage owner
 `tyk.dashboards.detaults.system` | The default Backstage system
