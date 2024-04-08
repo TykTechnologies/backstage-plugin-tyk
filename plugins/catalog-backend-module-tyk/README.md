@@ -54,9 +54,9 @@ Key | Purpose
 `tyk.dashboards.token` | API token used by the entity provider to authenticate with the Tyk Dashboard API - must be a Tyk Dashboard API token
 `tyk.dashboards.name` | Unique name by which the dashboard configuration can be identified
 `tyk.dashboards.defaults` | Default Backstage values used during the import process, if no specific values are provided
-`tyk.dashboards.detaults.owner` | The default Backstage owner
-`tyk.dashboards.detaults.system` | The default Backstage system
-`tyk.dashboards.detaults.lifecycle` | The default Backstage lifecycle
+`tyk.dashboards.defaults.owner` | The default Backstage owner
+`tyk.dashboards.defaults.system` | The default Backstage system
+`tyk.dashboards.defaults.lifecycle` | The default Backstage lifecycle
 
 ### 3. Plugin Configuration
 
@@ -143,7 +143,7 @@ Put the lines after `const builder: CatalogBuilder = CatalogBuilder.create(env);
 
 ##### Step 3: Create Routes (Optional)
 
-This step is only necessary is the router functionality is enabled i.e. `tyk.globalOptions.router.enabled` is set to `true`. 
+This step is only necessary if the router functionality is enabled i.e. `tyk.globalOptions.router.enabled` is set to `true`. 
 
 In this case, add these lines to register the routes:
 
@@ -244,9 +244,9 @@ Some Backstage entity fields are not naturally part of Tyk's data set. Therefore
 
 Default values are provided in the `defaults` part of each Tyk dashboard configuration. The values for `owner`, `system` and `lifecycle` must be defined, so that they can be applied as defaults to all entities imported from that dashboard.
 
-### Overridding Default Data
+### Overriding Default Data
 
-The default values can be overridden on a per-entity basis by providing the equivilant data in the Tyk objects being imported. In Tyk, use the API Definition `config_data` field to specify the data as a JSON object. The fields must be inside a root `backstage` object, for example:
+The default values can be overridden on a per-entity basis by providing the equivalent data in the Tyk objects being imported. In Tyk, use the API Definition `config_data` field to specify the data as a JSON object. The fields must be inside a root `backstage` object, for example:
 
 ```json
 "config_data": {
@@ -264,7 +264,9 @@ It's not necessary to specify and override all three fields - it's possible to p
 
 ## Dynamic Data Import
 
-When the router option is enabled in the entity provider config, the entity provide sets up endpoints in Backstage that the Tyk Dashboard can send a webhook request to Backstage when it detects a data change. Thiss allow Backstage entity data to be updated quickly after it is changed in the Tyk Dashboard.
+Dynamic data import allows Backstage entity data to be updated quickly after it is changed in the Tyk Dashboard. This is an improvement on the schedule-based approach.
+
+When the router option is enabled in the entity provider config, endpoints are set up in Backstage that enable the data import process to be triggered remotely by the Dashboard. To do this, the Dashboard sends a webhook request to Backstage when it detects a data change, which triggers the data import process.
 
 ### Endpoint Paths
 
@@ -274,7 +276,7 @@ The Backstage endpoints are based on the `name` of the Dashboard in the Backstag
 /api/catalog/tyk/development/sync
 ```
 
-Here `development` is the `name` given to the Dashboard in the Backstage configuration. Since the `name` is unique, each dashboard configuration its assigned its own endpoint. The `name` is the only part of the path to change, the rest remains the same across all dashboard configurations.
+Here `development` is the `name` given to the Dashboard in the Backstage configuration. Since the `name` is unique, each dashboard configuration is assigned its own endpoint. The `name` is the only part of the path to change, the rest remains the same across all dashboard configurations.
 
 ### Tyk Dashboard Organisation Configuration
 
@@ -303,7 +305,7 @@ Make sure that:
 
 If the entity provider encounters a problem it will log warnings and errors in the Backstage backend application log.
 
-To increase the logging verbosity, the set the log level to `debug`. For example, using yarn:
+To increase the logging verbosity, set the log level to `debug`. For example, using yarn:
 
 ```bash
 LOG_LEVEL=debug yarn start-backend
