@@ -2,6 +2,8 @@ The Tyk Backstage entity provider imports Tyk API definitions and components int
 
 ## Getting Started
 
+To use the Tyk Backstage entity provider, you will need an active Tyk installation with a valid Tyk Dashboard API token.
+
 ### 1. Package Installation
 
 To install the package, run this command from the Backstage root directory:
