@@ -370,7 +370,7 @@ spec:
 
 Establishing relationships between statically and dynamically imported entities is possible due to predictable naming.
 
-Where possible, automatically imported entities use predictable names - usually a static string appended with the name of the dashboard configuration from which they came. In the previous example, the `subComponentOf` field is set to `tyk-dashboard-development`, which is the Tyk dashboard entity created from a configuration with the name `development`.
+Where possible, predictable names are used for automatically imported entities. This is usually a static string that includes the id of the Tyk object and the name of the dashboard configuration that it came from. In the previous example, the `subComponentOf` field is set to `tyk-dashboard-development`, which refers to the Tyk dashboard entity created from the configuration named `development`.
 
 ## Troubleshooting
 
