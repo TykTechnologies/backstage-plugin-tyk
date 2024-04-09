@@ -9,7 +9,7 @@ To use the Tyk Backstage entity provider, you will need an active Tyk installati
 To install the package, run this command from the Backstage root directory:
 
 ```
-yarn --cwd packages/backend add @davegarvey/plugin-catalog-backend-module-tyk
+yarn --cwd packages/backend add @tyk-technologies/plugin-catalog-backend-module-tyk
 ```
 
 ### 2. Module Configuration
@@ -69,7 +69,7 @@ Follow this approach to configure the plugin for Backstage deployments using the
 Add this line to the Backstage `packages/backend/src/index.ts` file:
 
 ```ts
-backend.add(import('@davegarvey/plugin-catalog-backend-module-tyk/alpha'));
+backend.add(import('@tyk-technologies/plugin-catalog-backend-module-tyk/alpha'));
 ```
 
 The line can be added anywhere in the file between the lines `const backend = createBackend();` and `backend.start();`, for example:
@@ -84,7 +84,7 @@ backend.add(import('@backstage/plugin-proxy-backend/alpha'));
 backend.add(import('@backstage/plugin-scaffolder-backend/alpha'));
 backend.add(import('@backstage/plugin-techdocs-backend/alpha'));
 // Tyk entity provider
-backend.add(import('@davegarvey/plugin-catalog-backend-module-tyk/alpha'));
+backend.add(import('@tyk-technologies/plugin-catalog-backend-module-tyk/alpha'));
 
 // auth plugin
 backend.add(import('@backstage/plugin-auth-backend'));
@@ -125,7 +125,7 @@ Follow the step-by-step process below. A fully edited example is available at th
 Add this line to import the entity provider into the catalog plugin:
 
 ```ts
-import { TykEntityProvider } from '@davegarvey/plugin-catalog-backend-module-tyk';
+import { TykEntityProvider } from '@tyk-technologies/plugin-catalog-backend-module-tyk';
 ```
 
 Put the line near the top, with the other imports.
@@ -167,7 +167,7 @@ import {ScaffolderEntitiesProcessor} from '@backstage/plugin-scaffolder-backend'
 import {Router} from 'express';
 import {PluginEnvironment} from '../types';
 // Step 1
-import { TykEntityProvider } from '@davegarvey/plugin-catalog-backend-module-tyk';
+import { TykEntityProvider } from '@tyk-technologies/plugin-catalog-backend-module-tyk';
 
 export default async function createPlugin(
   env: PluginEnvironment,
