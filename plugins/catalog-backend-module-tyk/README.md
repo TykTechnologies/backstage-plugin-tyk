@@ -2,7 +2,7 @@ The Tyk Backstage entity provider imports Tyk API definitions and components int
 
 ## Getting Started
 
-To use the Tyk Backstage entity provider, you will need an active Tyk installation with a valid Tyk Dashboard API token.
+To use the entity provider, you will need an active Tyk installation with a valid dashboard API token.
 
 ### 1. Package Installation
 
@@ -14,7 +14,7 @@ yarn --cwd packages/backend add @tyk-technologies/plugin-catalog-backend-module-
 
 ### 2. Module Configuration
 
-To configure the Tyk entity provider, add a `tyk` section to the root of the Backstage `app-config.yaml` file.
+To configure the entity provider, add a `tyk` section to the root of the Backstage `app-config.yaml` file.
 
 This is an example configuration: 
 
@@ -37,7 +37,9 @@ tyk:
         lifecycle: development
 ```
 
-Note: It's possible to set configuration values using environment variables. See the use of `${TYKDASHBOARDAPITOKEN}` in the above example.
+Note: 
+- It's possible to set configuration values using environment variables. See the use of `${TYKDASHBOARDAPITOKEN}` in the above example.
+- Either one or both of the `router` or `scheduler` must be enabled.
 
 #### Configuration Description
 
@@ -145,7 +147,7 @@ Put the lines after `const builder: CatalogBuilder = CatalogBuilder.create(env);
 
 This step is only necessary if the router functionality is enabled i.e. `tyk.globalOptions.router.enabled` is set to `true`. 
 
-In this case, add these lines to register the routes:
+Add these lines to register the routes:
 
 ```ts
 await Promise.all(tykEPs.map(async (ep) => {
@@ -154,8 +156,6 @@ await Promise.all(tykEPs.map(async (ep) => {
 ```
 
 Put the lines after `await processingEngine.start();` but before `return router;`.
-
-Note that this only covers the Backstage side of the process - see the **Dynamic Data Import** section below for information on the Tyk side.
 
 ##### Full Example
 
@@ -191,13 +191,38 @@ export default async function createPlugin(
 }
 ```
 
-### 4. Validate Functionality
+### 4. Configure Tyk Webhook (Optional)
+
+This step is only required if `router` is enabled.
+
+The Tyk Dashboard must make a webhook request to trigger Backstage to perform router-based synchronisation. To do this, the Tyk *organisation* object needs to be updated to generate API events.
+
+Update your Tyk organisation JSON object via the Dashboard Admin API. In the organisation JSON, add an `api_event` object to the `event_options` section. For example:
+
+```json
+{
+  "id": "5e9d9544a1dcd60001d0ed20",
+  "owner_name": "Tyk Demo",
+  "apis": [],
+  "event_options": {
+    "api_event": {
+      "webhook": "http://my-backstage-backend:7007/api/catalog/tyk/development/sync"
+    }
+  }
+}
+```
+
+Make sure that:
+1. The `webhook` URL resolves to the Backstage backend deployment from the Tyk Dashboard
+2. The `webhook` URL path uses the dashboard configuration `name` from the Backstage `app-config.yaml`, which in this example is `development`
+
+### 5. Validate Functionality
 
 If the entity provider module is successfully installed and configured, you will see entries in the Backstage backend application logs related to initialisation and entity import.
 
 #### Initialisation
 
-On startup, the entity provider writes to the log to confirm that it has been initialised:
+On startup, the entity provider logs that it has been initialised:
 
 ```log
 2024-04-08T09:08:44.125Z catalog info Tyk entity provider initialized for development Dashboard
@@ -205,11 +230,23 @@ On startup, the entity provider writes to the log to confirm that it has been in
 
 #### Entity Import
 
-On data import, the entity provider writes to the log to specify how many entities were imported and where they were imported from:
+On data import, the entity provider specifies how many entities were imported and where they were imported from:
 
 ```log
 2024-04-08T09:08:45.315Z catalog info Importing 44 Tyk entities from development Dashboard entityProvider=tyk-entity-provider-development
 ```
+
+#### Dynamic Synchronisation
+
+This only applies if router-based synchronisation is enabled.
+
+On data change in the Tyk Dashboard, the router records the incoming HTTP request from the dashboard:
+
+```log
+2024-04-09T15:24:00.581Z backstage info ::ffff:127.0.0.1 - - [09/Apr/2024:15:24:00 +0000] "POST /api/catalog/tyk/development/sync HTTP/1.1" 200 - "-" "Tyk-Dash-Hookshot" type=incomingRequest
+```
+
+There will also be a log message related to importing entities, as per **Entity Import** above.
 
 ## Multi-Dashboard Configuration
 
@@ -236,72 +273,106 @@ tyk:
         lifecycle: production
 ```
 
-Note: For brevity, `globalOptions` is omitted from the above configuration.
+Note: For brevity, the `globalOptions` section is omitted from the above configuration.
 
-## Backstage Default Data
+## Data Import Process
 
-Some Backstage entity fields are not naturally part of Tyk's data set. Therefore, it's necessary to specify default values, so that entity data can be correctly assigned during the import process.
+The data is imported directly from Tyk into Backstage via the Dashboard API, where the Tyk object fields and relationships are mapped to Backstage entities.
 
-Default values are provided in the `defaults` part of each Tyk dashboard configuration. The values for `owner`, `system` and `lifecycle` must be defined, so that they can be applied as defaults to all entities imported from that dashboard.
+The entity provider imports the follow Tyk data:
+- API Definitions
+- Dashboards
+- Gateways
 
-### Overriding Default Data
+TODO: mermaid diagram of import sequence
 
-The default values can be overridden on a per-entity basis by providing the equivalent data in the Tyk objects being imported. In Tyk, use the API Definition `config_data` field to specify the data as a JSON object. The fields must be inside a root `backstage` object, for example:
+### Synchronisation Methods
 
-```json
-"config_data": {
-  "backstage": {
-    "lifecycle": "production",
-    "owner": "group:default/developers",
-    "system": "system:default/tyk-development-environment"
-  }
-},
-```
+There are two methods for triggering synchronisation, schedule-based and router-based. Either or both of these methods can be chosen - see the **Module Configuration** section for more information.
 
-The entity provider will check for the presence of this data when importing the API definition, and will override the default values accordingly. 
+#### Scheduler-Based Synchronisation
 
-It's not necessary to specify and override all three fields - it's possible to provide just one or two.
+Scheduler-based synchronisation is a simple method that uses a scheduled task to pull data from a Tyk dashboard on regular intervals. 
 
-## Dynamic Data Import
+The advantages of this approach are that it's quick and easy to set up. It doesn't require any additional configuration of the Tyk system in order to function.
 
-Dynamic data import allows Backstage entity data to be updated quickly after it is changed in the Tyk Dashboard. This is an improvement on the schedule-based approach.
+The disadvantage is the rigid nature of the scheduled task, which means that there's a delay in Tyk data updates reaching Backstage. It also means that synchronisations are performed whether needed or not.
 
-When the router option is enabled in the entity provider config, endpoints are set up in Backstage that enable the data import process to be triggered remotely by the Dashboard. To do this, the Dashboard sends a webhook request to Backstage when it detects a data change, which triggers the data import process.
+#### Router-Based Synchronisation
 
-### Endpoint Paths
+Router-based synchronisation can be seen as more efficient when compared to the scheduler approach. Rather than operating on a regular interval, it instead waits for synchronisation to be triggered remotely.
 
-The Backstage endpoints are based on the `name` of the Dashboard in the Backstage configuration, for example:
+The advantage of this approach is that it allows Tyk to initiate the synchronisation process when changes occur in the dashboard. 
+
+The disadvantage is that the Tyk dashboard must be configured to send webhook requests when data changes occur - see the **Tyk Dashboard Organisation Configuration** section for more information. This is additional effort when compared to the scheduler approach.
+
+##### Endpoint Paths
+
+The endpoint paths created for the router-based approach are based on the `name` of the Dashboard in the Backstage configuration, for example:
 
 ```
 /api/catalog/tyk/development/sync
 ```
 
-Here `development` is the `name` given to the Dashboard in the Backstage configuration. Since the `name` is unique, each dashboard configuration is assigned its own endpoint. The `name` is the only part of the path to change, the rest remains the same across all dashboard configurations.
+In this example, `development` is the `name` given to the Dashboard in the Backstage configuration. Since the `name` is unique, each dashboard configuration is assigned its own endpoint. The `name` is the only part of the path to change, the rest remains the same across all dashboard configurations.
 
-### Tyk Dashboard Organisation Configuration
+### Entity Relationships
 
-To configure the Tyk Dashboard to make the webhook request, the Tyk *organisation* object needs to be provided with the Backstage URL.
+Entity relationships are established automatically, based on the known connections between Tyk components and data. For example, the Tyk Dashboard provides several APIs, but consumes the API provided by the Tyk Gateway, so has a dependency on that component.
 
-To do this, update your Tyk organisation JSON object via the Dashboard Admin API. In the organisation JSON, add an `api_event` object to the `event_options` section. For example:
+The entity provider establishes relationships between entities using common Backstage relation types:
+- providesApis
+- consumesApis
+- dependsOn
+- subcomponentOf
 
-```json
-{
-  "api_event": {
-    "webhook": "http://my-backstage-backend:7007/api/catalog/tyk/development/sync",
-    "email": "",
-    "redis": false
-  }
-}
+The relationship between APIs and Gateways depends on whether the Gateway is segmented. In this scenario, Gateways only provide APIs that have a matching segmentation tag. The entity provider is aware of this and sets the `providesApis` relationship accordingly.
+
+### Non-Tyk Entities
+
+The entity provider does not handle management of non-Tyk entities, such as **systems** and **owners**. Tyk entities will refer to these as part of their Backstage metadata. 
+
+These entities should be defined and imported separately, such as through a static YAML file. For example, this is an example of a `System` entity:
+
+```yaml
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-system
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: tyk
+  description: Tyk API Management
+spec:
+  owner: guests
 ```
 
-Make sure that:
-1. The `webhook` URL resolves to the Backstage backend deployment from the Tyk Dashboard.
-2. The `webhook` URL path uses the dashboard configuration name specified in the Backstage `app-config.yaml` - the example value `development` is based on the example above.
+Missing entities will not prevent Tyk data from being imported into Backstage, but it may provide an unsatisfactory user experience as Backstage users can encounter 'entity not found' errors through the Backstage user interface.
 
+### Statically Defined Tyk Entities
 
-## Logging
+Some Tyk components can't be automatically imported, as they're not discoverable through the Dashboard API. In these situations a static YAML file can be used to define the entity. For example, a Tyk Pump entity could be defined as follows:
 
-### Troubleshooting
+```yaml
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tyk-pump-development
+  title: Tyk Pump
+spec:
+  type: service
+  lifecycle: development
+  owner: guests
+  system: tyk
+  subcomponentOf: tyk-dashboard-development
+```
+
+#### Predictable Naming
+
+Establishing relationships between statically and dynamically imported entities is possible due to predictable naming.
+
+Where possible, automatically imported entities use predictable names - usually a static string appended with the name of the dashboard configuration from which they came. In the previous example, the `subComponentOf` field is set to `tyk-dashboard-development`, which is the Tyk dashboard entity created from a configuration with the name `development`.
+
+## Troubleshooting
 
 If the entity provider encounters a problem it will log warnings and errors in the Backstage backend application log.
 
@@ -311,97 +382,4 @@ To increase the logging verbosity, set the log level to `debug`. For example, us
 LOG_LEVEL=debug yarn start-backend
 ```
 
-Setting `LOG_LEVEL` to `debug` won't display additional warning or error messages, as these are normally always displayed. Nevertheless, the additional debug information may be useful for troubleshooting.
-
-## Sequence Diagrams
-
-### Entity Provider Initialisation
-
-How the Backstage catalog initialises Tyk entity providers:
-
-```mermaid
-sequenceDiagram
-    participant ca as Catalog
-    participant co as Backstage Configuration
-    participant ep as Tyk Entity Provider
-    participant td as Tyk Dashboard
-    ca->>co: Read entity provider configuration
-    co-->>ca: Entity provider configuration
-    loop Create each entity provider defined in configuration
-        ca->>ep: Entity provider configuration
-        ep-->>ca: Entity provider
-        ca->>ca: Add entity provider to processing engine
-    end
-    loop Initialise each entity provider
-        ca->>ep: Scheduler and router
-        ep->>ep: Setup schedule and routes
-        ep->>td: Get Tyk data
-        Note over ep: Initial synchronisation
-        td-->>ep: Tyk data
-        ep->>ep: Convert Tyk data into entities
-        ep-)ca: Tyk entities
-    end
-```
-
-### Data Import Process
-
-How the Tyk entity provider imports data from a Tyk dashboard into the Backstage catalog:
-
-```mermaid
-sequenceDiagram
-    participant ep as Tyk Entity Provider
-    participant td as Tyk Dashboard
-    participant ca as Catalog
-    ep->>ep: Generate dashboard entity based on provided config
-    ep->>td: Get API data
-    td-->>ep: API data
-    loop Process APIs defined in API data
-        ep->>ep: Convert API data into entity
-    end
-    ep->>td: Get system data
-    td-->>ep: System data
-    loop Process gateways defined in system data
-        ep->>td: Get gateway data
-        td-->>ep: Gateway data
-        ep->>ep: Convert gateway data into entity
-    end
-    ep-->>ep: Generate relationships between API and gateway entities based on tags
-    ep-)ca: Tyk entities
-```
-
-### Operation of Schedule-Based Data Import
-
-How the Backstage scheduler triggers the Tyk entity provider:
-
-```mermaid
-sequenceDiagram
-    participant ts as Task Scheduler
-    participant ep as Entity Provider
-    participant td as Tyk Dashboard
-    participant ca as Catalog
-    ts->>ts: Interval event occurs, based on interval 
-    ts-)ep: Trigger synchronisation
-    ep->>td: Get Tyk data
-    td-->>ep: Tyk data
-    ep->>ep: Convert Tyk data into entities
-    ep-)ca: Tyk entities
-```
-
-### Operation of Router-Based Data Import
-
-How the Backstage router triggers the Tyk entity provider:
-
-```mermaid
-sequenceDiagram
-    participant td as Tyk Dashboard
-    participant ro as Router
-    participant ep as Entity Provider
-    participant ca as Catalog
-    td->>ro: Event payload, triggered by data change in dashboard
-    ro-)ep: Trigger synchronisation
-    ep->>td: Get Tyk data
-    td-->>ep: Tyk data
-    ep->>ep: Convert Tyk data into entities
-    ep-)ca: Tyk entities
-    ro-->>td: Status code
-```
+Setting `LOG_LEVEL` to `debug` won't display additional information related to warnings or errors, as this is typically already displayed. Nevertheless, the additional debug information may be useful for troubleshooting.
