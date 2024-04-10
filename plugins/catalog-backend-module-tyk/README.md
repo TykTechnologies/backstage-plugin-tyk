@@ -8,7 +8,7 @@ To use the entity provider, you will need an active Tyk installation with a vali
 
 To install the package, run this command from the Backstage root directory:
 
-```
+```shell
 yarn --cwd packages/backend add @tyk-technologies/plugin-catalog-backend-module-tyk
 ```
 
@@ -231,7 +231,7 @@ If the entity provider module is successfully installed and configured, you will
 
 On startup, the entity provider logs that it has been initialised:
 
-```log
+```shell
 2024-04-08T09:08:44.125Z catalog info Tyk entity provider initialized for development Dashboard
 ```
 
@@ -239,7 +239,7 @@ On startup, the entity provider logs that it has been initialised:
 
 On data import, the entity provider specifies how many entities were imported and where they were imported from:
 
-```log
+```shell
 2024-04-08T09:08:45.315Z catalog info Importing 44 Tyk entities from development Dashboard entityProvider=tyk-entity-provider-development
 ```
 
@@ -483,7 +483,7 @@ If the entity provider encounters a problem it will log warnings and errors in t
 
 To increase the logging verbosity, set the log level to `debug`. For example, using yarn:
 
-```bash
+```shell
 LOG_LEVEL=debug yarn start-backend
 ```
 
