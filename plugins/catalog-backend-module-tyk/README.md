@@ -284,7 +284,33 @@ The entity provider imports the follow Tyk data:
 - Dashboards
 - Gateways
 
-TODO: mermaid diagram of import sequence
+### Data Import Sequence Diagram
+
+This is a overview of the data import process.
+
+```mermaid
+sequenceDiagram
+    participant ep as Tyk Entity Provider
+    participant td as Tyk Dashboard
+    participant ca as Catalog
+    ep->>td: Check connectivity
+    td-->>ep: Connectivity response
+    ep->>ep: Generate dashboard entity using entity provider config
+    ep->>td: Get API data
+    td-->>ep: API data
+    loop Process APIs defined in API data
+        ep->>ep: Convert API data into entity
+    end
+    ep->>td: Get system data
+    td-->>ep: System data
+    loop Process gateways defined in system data
+        ep->>td: Get gateway data
+        td-->>ep: Gateway data
+        ep-->>ep: Generate relationships between API and gateway entities based on tags
+        ep->>ep: Convert gateway data into entity
+    end
+    ep-)ca: Tyk entities
+```
 
 ### Synchronisation Methods
 
