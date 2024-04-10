@@ -414,7 +414,7 @@ Backstage Label | Source API Definition Field | Source Type | Description
 ---|---|---|---
 `tyk.io/active` | `active` | Boolean | Active status of the API definition
 `tyk.io/apiId` | `api_id` | GUID | Unique id of the API definition
-`tyk.io/name` | `name` | String | Name of the API definition
+`tyk.io/name` | `name` | String | Name of the API definition, converted to "kebab-case" to comply with label rules
 `tyk.io/authentication` | n/a | n/a | Authentication mechanism of the API definition
 
 All labels are prefixed `tyk.io/` to distinguish them from labels added from other sources.
