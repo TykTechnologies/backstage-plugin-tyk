@@ -49,7 +49,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
-      options.logger.debug(`Initializing Tyk entity provider for ${tykDashboardConfig.name} Dashboard`);
+      options.logger.debug(`Initializing Tyk entity provider`);
 
       let ep = new TykEntityProvider({
         logger: options.logger,
@@ -66,7 +66,7 @@ export class TykEntityProvider implements EntityProvider {
 
       tykEntityProviders.push(ep);
   
-      options.logger.info(`Tyk entity provider initialized for ${tykDashboardConfig.name} Dashboard`);
+      options.logger.info(`Tyk entity provider initialized`);
     });
 
     return tykEntityProviders;
@@ -107,12 +107,12 @@ export class TykEntityProvider implements EntityProvider {
   async checkClientConnectivity() {
     try {
       if (await this.dashboardClient.checkDashboardConnectivity()) {
-        this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);
+        this.logger.debug(`Found Tyk Dashboard`);
       } else {
-        this.logger.error(`Tyk ${this.dashboardConfig.name} Dashboard failed connectivity check - check that configuration is correct`);
+        this.logger.error(`Connectivity check failed - check that configuration is correct`);
       }
     } catch (error) {
-      this.logger.error(`Error performing connectivity check for Tyk ${this.dashboardConfig.name} Dashboard:`, error);
+      this.logger.error(`Error performing connectivity check:`, error);
     }
   }
 
@@ -209,7 +209,7 @@ export class TykEntityProvider implements EntityProvider {
       return collector;
     }, []);
     
-    this.logger.debug(`Generating entity for Tyk Gateway ${gateway.id} from ${this.dashboardConfig.name} Dashboard, hosted on ${gateway.hostname} and is ${gateway.segmented ? `segmented with tags ${JSON.stringify(gateway.tags)}`:"not segmented"}, providing ${provides.length} APIs: ${JSON.stringify(provides)}`);
+    this.logger.debug(`Generating entity for Tyk Gateway ${gateway.id}, hosted on ${gateway.hostname} and is ${gateway.segmented ? `segmented with tags ${JSON.stringify(gateway.tags)}`:"not segmented"}, providing ${provides.length} APIs: ${JSON.stringify(provides)}`);
 
     return {
       apiVersion: 'backstage.io/v1alpha1',
@@ -262,7 +262,7 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    this.logger.debug(`Generating Tyk API entity for "${title}" from ${this.dashboardConfig.name} Dashboard`);
+    this.logger.debug(`Generating Tyk API entity for "${title}"`);
 
     // if there is no defaultOwner and the api definition config_data does not provide an owner,
     // then we need to throw an error in the logs and skip this particular API definition
@@ -379,7 +379,7 @@ export class TykEntityProvider implements EntityProvider {
     const deferredEntities: DeferredEntity[] = [];
 
     if (await this.dashboardClient.checkDashboardConnectivity()) {
-      this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);      
+      this.logger.debug(`Dashboard connectivity check succeeded`);      
     } else {
       throw new Error(`Could not connect to Tyk ${this.dashboardConfig.name} Dashboard`);
     }
@@ -398,7 +398,7 @@ export class TykEntityProvider implements EntityProvider {
     });
 
     if (apiEntities == undefined || apiEntities.length == 0) {
-      this.logger.warn(`No Tyk API definitions found at ${this.dashboardConfig.name} Dashboard`);
+      this.logger.warn(`No Tyk API definitions found`);
     }
 
     deferredEntities.push(...apiEntities.map((entity: ApiEntityV1alpha1): DeferredEntity => ({
@@ -406,7 +406,7 @@ export class TykEntityProvider implements EntityProvider {
       locationKey: `${this.getProviderName}`,
     })));
 
-    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"} in ${this.dashboardConfig.name} Dashboard`);
+    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"}`);
 
     // discover the gateways
     const enrichedGateways: enrichedGateway[] = [];
@@ -427,7 +427,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.warn(`No Tyk Gateways found at ${this.dashboardConfig.name} Dashboard`);
     }
 
-    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"} in ${this.dashboardConfig.name} Dashboard`);
+    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"}`);
 
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
       return this.toGatewayComponentEntity(apis, gateway);
@@ -449,13 +449,13 @@ export class TykEntityProvider implements EntityProvider {
     // try/catch block is used to avoid performing a sync if an error occurs, as it could result in an incorrect data mutation
     try {
       const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
-      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"} from ${this.dashboardConfig.name} Dashboard`);
+      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"}`);
       await this.connection!.applyMutation({
         type: 'full',
         entities: deferredEntities,
       });        
     } catch (error) {
-      this.logger.error(`Error importing Tyk entities from ${this.dashboardConfig.name} Dashboard:`, error);
+      this.logger.error(`Error importing Tyk entities:`, error);
     }
   }
 }
