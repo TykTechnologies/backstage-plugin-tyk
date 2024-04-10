@@ -408,7 +408,7 @@ The name of this entity will be consistent across mulitple imports.
 
 ### Labels
 
-The entity provider adds labels to API entities during the import process. These labels are based on values from the source API definition:
+The entity provider automatically adds labels to API entities during the import process. These labels are based on values from the source API definition:
 
 Backstage Label | Source API Definition Field | Source Type | Description
 ---|---|---|---
@@ -443,6 +443,20 @@ In this example, a label called `tyk.io/hello` with the value `world` will be ad
 The entity provider can create tags for imported API entities based on source Tyk API definition categories.
 
 This functionality is controlled by the `tyk.globalOptions.importCategoriesAsTags` configuration option, which if set to `true` will perform the conversion. Entity tags are created with the `#` Tyk category prefix.
+
+### Annotations
+
+The entity provider automatically creates annotations for API entities that it imports. The annotations are based on the Backstage "well-known" annotations:
+
+Annotation | Value
+---|---|---
+`backstage.io/managed-by-location` | URL of the source Tyk Dashboard
+`backstage.io/managed-by-origin-location` | URL of the source Tyk Dashboard
+`backstage.io/edit-url` | URL of the source API definition entity in the Tyk Dashboard
+`backstage.io/view-url` | URL of the source API definition entity in the Tyk Dashboard
+`backstage.io/source-location` | URL of the source API definition entity in the Tyk Dashboard
+
+Setting these annotations allows Backstage to provide additional functionality, such as displaying contextual links when listing API objects in the Backstage user interface.
 
 ## Troubleshooting
 
