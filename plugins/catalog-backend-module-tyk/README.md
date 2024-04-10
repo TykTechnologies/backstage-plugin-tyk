@@ -440,13 +440,13 @@ In this example, a label called `tyk.io/hello` with the value `world` will be ad
 
 ### Tags
 
-The entity provider can create tags for imported API entities based on source Tyk API definition categories.
+The entity provider can automatically create tags for API entities using the categories defined in source Tyk API definitions.
 
 This functionality is controlled by the `tyk.globalOptions.importCategoriesAsTags` configuration option, which if set to `true` will perform the conversion. Entity tags are created with the `#` Tyk category prefix.
 
 ### Annotations
 
-The entity provider automatically creates annotations for API entities that it imports. The annotations are based on the Backstage "well-known" annotations:
+The entity provider automatically creates annotations for API entities. The annotations are based on the Backstage "well-known" annotations:
 
 Annotation | Value
 ---|---|---
@@ -457,6 +457,10 @@ Annotation | Value
 `backstage.io/source-location` | URL of the source API definition entity in the Tyk Dashboard
 
 Setting these annotations allows Backstage to provide additional functionality, such as displaying contextual links when listing API objects in the Backstage user interface.
+
+### API Specification
+
+The entity provider automatically sets the specification type depending on the type of API 
 
 ## Troubleshooting
 
