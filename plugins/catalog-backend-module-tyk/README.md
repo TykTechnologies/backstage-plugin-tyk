@@ -37,9 +37,14 @@ tyk:
         lifecycle: development
 ```
 
-Note: 
-- It's possible to set configuration values using environment variables. See the use of `${TYKDASHBOARDAPITOKEN}` in the above example.
-- Either one or both of the `router` or `scheduler` must be enabled.
+This example configuration:
+- Enables both the router and scheduler data import methods
+- Sets the scheduler import to run every `5` minutes
+- Enables categories to be imported as tags
+- Defines one Tyk dashboard named `development` from which to import data:
+  - Dashboard is accessible on `http://localhost:3000`
+  - Environment variable `TYKDASHBOARDAPITOKEN` set as the Dashboard API access token
+  - Backstage metadata default values set to `group:default/guests`, `system:default/tyk` and `development`
 
 #### Configuration Description
 
@@ -59,6 +64,8 @@ Key | Purpose
 `tyk.dashboards.defaults.owner` | The default Backstage owner
 `tyk.dashboards.defaults.system` | The default Backstage system
 `tyk.dashboards.defaults.lifecycle` | The default Backstage lifecycle
+
+Note: Either one or both of the `router` or `scheduler` must be enabled.
 
 ### 3. Plugin Configuration
 
