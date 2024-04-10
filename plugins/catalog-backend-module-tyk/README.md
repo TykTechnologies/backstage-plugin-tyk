@@ -406,6 +406,38 @@ For example, an API entity with the name `development-727dad853a8a45f64ab981154d
 
 The name of this entity will be consistent across mulitple imports.
 
+### Labels
+
+The entity provider adds labels to API entities during the import process. These labels are based on values from the source API definition:
+
+Backstage Label | Source API Definition Field | Source Type | Description
+---|---|---|---
+`tyk.io/active` | `active` | Boolean | Active status of the API definition
+`tyk.io/apiId` | `api_id` | GUID | Unique id of the API definition
+`tyk.io/name` | `name` | String | Name of the API definition
+`tyk.io/authentication` | n/a | n/a | Authentication mechanism of the API definition
+
+All labels are prefixed `tyk.io/` to distinguish them from labels added from other sources.
+
+#### Custom Labels
+
+Custom labels can be added to API entities by including a `labels` array within the `backstage` object in the Tyk API Definition `config_data` field. The `labels` array should contain key/value pair objects that represent the labels. For example:
+
+```json
+{
+  "backstage": {
+    "labels": [
+      { 
+        "key": "hello",
+        "value": "world"
+      }
+    ]
+  }
+}
+```
+
+In this example, a label called `tyk.io/hello` with the value `world` will be added to the imported API entity.
+
 ## Troubleshooting
 
 If the entity provider encounters a problem it will log warnings and errors in the Backstage backend application log.
