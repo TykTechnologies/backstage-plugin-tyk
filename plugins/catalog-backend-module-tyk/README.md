@@ -460,7 +460,15 @@ Setting these annotations allows Backstage to provide additional functionality, 
 
 ### API Specification
 
-The entity provider automatically sets the specification type depending on the type of API 
+The entity provider automatically sets the API specification type depending on the type of API being imported:
+
+Tyk API Type | Backstage API Specification Type
+---|---
+Standard Tyk API Definition | `tyk`
+OAS | `openapi`
+GraphQL | `graphql`
+
+When a specification type is set to `openapi` or `graphql`, Backstage renders the relevant user interface for the specification document e.g. GraphiQL is used for GraphQL APIs. The `tyk` specification type does not have a user interface, so is displayed as JSON.
 
 ## Troubleshooting
 
