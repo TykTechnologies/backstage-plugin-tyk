@@ -48,7 +48,7 @@ Key | Purpose
 `tyk` | Backstage configuration namespace for the Tyk entity provider
 `tyk.globalOptions` | Options that apply to all Tyk Dashboards registered in `tyk.dashboards`
 `tyk.globalOptions.router.enabled` | If set to `true`, registers endpoints that enable the Tyk Dashboard webhooks to dynamically import Backstage entities
-`tyk.globalOptions.scheduler.enabled` | If set to `true`, Adds a scheduled task to Backstage that imports Backstage entities on a regular basis
+`tyk.globalOptions.scheduler.enabled` | If set to `true`, adds a scheduled task to Backstage that imports Backstage entities on a regular basis
 `tyk.globalOptions.scheduler.frequency` | Frequency in minutes that the scheduled task runs
 `tyk.globalOptions.importCategoriesAsTags` | If set to `true`, Tyk API definition categories are imported as Backstage entity tags
 `tyk.dashboards` | Array of Tyk Dashboard configurations, enabling the entity provider to import data from multiple Tyk deployments
