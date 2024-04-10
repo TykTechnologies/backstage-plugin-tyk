@@ -438,6 +438,12 @@ Custom labels can be added to API entities by including a `labels` array within 
 
 In this example, a label called `tyk.io/hello` with the value `world` will be added to the imported API entity.
 
+### Tags
+
+The entity provider can create tags for imported API entities based on source Tyk API definition categories.
+
+This functionality is controlled by the `tyk.globalOptions.importCategoriesAsTags` configuration option, which if set to `true` will perform the conversion. Entity tags are created with the `#` Tyk category prefix.
+
 ## Troubleshooting
 
 If the entity provider encounters a problem it will log warnings and errors in the Backstage backend application log.
