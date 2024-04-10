@@ -382,7 +382,7 @@ export class TykEntityProvider implements EntityProvider {
       this.logger.debug(`Found Tyk Dashboard ${this.dashboardConfig.name}`);      
     } else {
       throw new Error(`Could not connect to Tyk ${this.dashboardConfig.name} Dashboard`);
-    }  
+    }
 
     const dashboardComponentEntity: ComponentEntityV1alpha1 = this.toDashboardComponentEntity();
     deferredEntities.push({
