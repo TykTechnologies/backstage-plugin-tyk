@@ -49,7 +49,7 @@ export class TykEntityProvider implements EntityProvider {
     }
 
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
-      options.logger.debug(`Initializing Tyk entity provider`);
+      options.logger.debug(`Initializing Tyk entity provider from config: ${tykDashboardConfig.name}`);
 
       let ep = new TykEntityProvider({
         logger: options.logger,
@@ -66,7 +66,7 @@ export class TykEntityProvider implements EntityProvider {
 
       tykEntityProviders.push(ep);
   
-      options.logger.info(`Tyk entity provider initialized`);
+      options.logger.info(`Tyk entity provider initialized: ${ep.getProviderName()}`);
     });
 
     return tykEntityProviders;
