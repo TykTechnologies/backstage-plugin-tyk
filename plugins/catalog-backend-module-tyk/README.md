@@ -40,7 +40,7 @@ tyk:
 This example configuration:
 - Enables both the router and scheduler data import methods
 - Sets the scheduler import to run every `5` minutes
-- Enables categories to be imported as tags
+- Enables Tyk API definition categories to be imported as Backstage entity tags
 - Defines one Tyk dashboard named `development` from which to import data:
   - Dashboard is accessible on `http://localhost:3000`
   - Environment variable `TYKDASHBOARDAPITOKEN` set as the Dashboard API access token
