@@ -251,7 +251,7 @@ This only applies if router-based synchronisation is enabled.
 
 On data change in the Tyk Dashboard, the router records the incoming HTTP request from the dashboard:
 
-```log
+```shell
 2024-04-09T15:24:00.581Z backstage info ::ffff:127.0.0.1 - - [09/Apr/2024:15:24:00 +0000] "POST /api/catalog/tyk/development/sync HTTP/1.1" 200 - "-" "Tyk-Dash-Hookshot" type=incomingRequest
 ```
 
