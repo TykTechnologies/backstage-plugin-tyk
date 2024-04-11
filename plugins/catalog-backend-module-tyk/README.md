@@ -121,6 +121,8 @@ backend.add(import('@backstage/plugin-search-backend-module-techdocs/alpha'));
 backend.start();
 ```
 
+You can now skip the next section and move onto **Configure Tyk Webhook (Optional)**.
+
 #### Legacy Architecture (prior to Backstage v1.18.0)
 
 Follow this approach to configure the plugin for Backstage deployments using the legacy architecture.
@@ -204,7 +206,7 @@ This step is only required if `router` is enabled.
 
 The Tyk Dashboard must make a webhook request to trigger Backstage to perform router-based synchronisation. To do this, the Tyk *organisation* object needs to be updated to generate API events.
 
-Update your Tyk organisation JSON object via the Dashboard Admin API. In the organisation JSON, add an `api_event` object to the `event_options` section. For example:
+Update your Tyk organisation JSON object via the [Dashboard Admin API](https://tyk.io/docs/dashboard-admin-api/). In the organisation JSON, add an `api_event` object to the `event_options` section. For example, this shows a simple organisation JSON that contains an `api_event` with a Backstage URL:
 
 ```json
 {
@@ -219,9 +221,9 @@ Update your Tyk organisation JSON object via the Dashboard Admin API. In the org
 }
 ```
 
-Make sure that:
-1. The `webhook` URL resolves to the Backstage backend deployment from the Tyk Dashboard
-2. The `webhook` URL path uses the dashboard configuration `name` from the Backstage `app-config.yaml`, which in this example is `development`
+Note:
+- The `webhook` Backstage URL must resolve to the Backstage backend from the Tyk Dashboard
+- The path used for the `webhook` Backstage URL must be in the form `/api/catalog/tyk/{dashboard_config_name}/sync`, where `{dashboard_config_name}` is the `name` of the Backstage dashboard config. In this example, it is `development`.
 
 ### 5. Validate Functionality
 
