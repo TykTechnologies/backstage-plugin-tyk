@@ -69,11 +69,11 @@ Note: Either one or both of the `router` or `scheduler` must be enabled.
 
 ### 3. Plugin Configuration
 
-Now that the entity provider is installed and configured, the final step is to configure the Backstage catalog to use the Tyk entity provider module. The process for this differs, depending on whether you are using the current or legacy architecture. Use of the current architecture approach is encouraged from Backstage v1.18.0 onwards.
+Now that the entity provider is installed and configured, the next step is to configure Backstage to use it. The process for this differs, depending on whether you are using Backstage's current or legacy architecture. Use of the *current architecture* approach is encouraged from Backstage v1.18.0 onwards.
 
-#### Current Architecture
+#### Current Architecture (Backstage v1.18.0 onwards)
 
-Follow this approach to configure the plugin for Backstage deployments using the current architecture (from Backstage v1.18.0).
+Follow this approach to configure the plugin for Backstage deployments using the current architecture.
 
 Add this line to the Backstage `packages/backend/src/index.ts` file:
 
@@ -121,9 +121,9 @@ backend.add(import('@backstage/plugin-search-backend-module-techdocs/alpha'));
 backend.start();
 ```
 
-#### Legacy Architecture
+#### Legacy Architecture (prior to Backstage v1.18.0)
 
-Follow this approach to configure the plugin for Backstage deployments using the legacy architecture (prior to Backstage v1.18.0).
+Follow this approach to configure the plugin for Backstage deployments using the legacy architecture.
 
 Several edits are required to the core backend catalog plugin file `packages/backend/src/plugins/catalog.ts`.
 
