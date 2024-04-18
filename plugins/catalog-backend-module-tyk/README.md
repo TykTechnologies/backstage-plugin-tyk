@@ -356,10 +356,10 @@ In this example, `development` is the `name` given to the Dashboard in the Backs
 Entity relationships are established automatically, based on the known connections between Tyk components and data. For example, the Tyk Dashboard provides several APIs, but consumes the API provided by the Tyk Gateway, so has a dependency on that component.
 
 The entity provider establishes relationships between entities using common Backstage relation types:
-- providesApis
-- consumesApis
-- dependsOn
-- subcomponentOf
+- `providesApis`
+- `consumesApis`
+- `dependsOn`
+- `subcomponentOf`
 
 The relationship between APIs and Gateways depends on whether the Gateway is segmented. In this scenario, Gateways only provide APIs that have a matching segmentation tag. The entity provider is aware of this and sets the `providesApis` relationship accordingly.
 
@@ -458,7 +458,7 @@ This functionality is controlled by the `tyk.globalOptions.importCategoriesAsTag
 The entity provider automatically creates annotations for API entities. The annotations are based on the Backstage "well-known" annotations:
 
 Annotation | Value
----|---|---
+---|---
 `backstage.io/managed-by-location` | URL of the source Tyk Dashboard
 `backstage.io/managed-by-origin-location` | URL of the source Tyk Dashboard
 `backstage.io/edit-url` | URL of the source API definition entity in the Tyk Dashboard
