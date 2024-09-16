@@ -1,21 +1,35 @@
-This is the developer guide, which explains how to set up a development environment and contribute to the project.
+This guide explains how to set up your development environment and contribute to the project.
+
+For details on how the entity provider works, refer to the [Entity Provider README](plugins/catalog-backend-module-tyk/README.md).
 
 # Development Environment Setup
 
 Prerequisites:
-1. A Tyk installation, that you can connect to from your development environment, with knowledge of the Tyk dashboard URL and API access token
-2. General Backstage prereqs as per https://backstage.io/docs/getting-started/#prerequisites
-3. Access to the Tyk Backstage entity provider Github repo https://github.com/TykTechnologies/backstage-tyk-entity-provider
 
-Once you have the prerequisites you can set up the Backstage development environment.
+1. **Tyk Installation**: Ensure you have access to a Tyk installation, including the Tyk Dashboard URL and API access token.
+2. **Backstage Requirements**: Follow the general prerequisites listed on the [Backstage documentation](https://backstage.io/docs/getting-started/#prerequisites).
+3. **Access to the Tyk Backstage Entity Provider Repository**: [GitHub Repo](https://github.com/TykTechnologies/backstage-tyk-entity-provider).
 
-Development environment setup:
-1. Clone this repo - `git clone https://github.com/TykTechnologies/backstage-tyk-entity-provider`
-2. Change to the cloned directory - `cd backstage-tyk-entity-provider`
-3. Install the backstage packages with yarn - `yarn install`
-4. Update the `tyk.dashboards` section of the `app-config.yaml`, setting the values of `host` and `token` to those of your Tyk Dashboard host url and API token
+Once these prerequisites are in place, proceed with setting up the Backstage development environment.
 
-For example, replace the values `tyk.dashboards.host` and `tyk.dashboards.token` with your values:
+Steps to Set Up:
+
+1. Clone the repository:
+```sh
+git clone https://github.com/TykTechnologies/backstage-tyk-entity-provider
+```
+
+2. Navigate to the cloned directory:
+```sh
+cd backstage-tyk-entity-provider
+```
+
+3. Install Backstage packages:
+```sh
+yarn install
+```
+
+4. Update the `app-config.yaml` file to include your Tyk Dashboard host URL and API token. Update the `tyk.dashboards[].host` and `tyk.dashboards[].token` fields with your actual values:
 ```yaml
 tyk:
   globalOptions:
@@ -34,14 +48,17 @@ tyk:
         system: system:default/tyk
         lifecycle: development
 ```
+Your development environment is now set up.
 
-To test if it is working, use yarn to run Backstage:
+## Running the Development Environment
 
-```
+To start the Backstage environment, run:
+
+```sh
 yarn dev
 ```
 
-This will start Backstage's frontend and backend, and show the application log for both. If it's working correctly, you should see some messages from the `catalog` that refer to the entity provider:
+This will launch both the frontend and backend, and you'll see logs for both. If everything is working correctly, you'll see logs like these for the backend:
 
 ```log
 [1] 2024-09-16T10:13:21.618Z catalog info Tyk entity provider initialized: tyk-entity-provider-development type=plugin
@@ -50,9 +67,9 @@ This will start Backstage's frontend and backend, and show the application log f
 
 ## Using router sync
 
-Router sync is enabled in the default config, but this only sets up the listen paths in the Backstage entity provider. In order to have the Tyk dashboard call the entity provider listen path, you need to configure your Tyk dashboard to fire a webhook when there is an API definition change.
+Router sync is enabled by default, but it only sets up the listen paths in the Backstage entity provider. To ensure that your Tyk Dashboard triggers the sync when an API definition changes, configure a webhook in your Tyk organization.
 
-To do this, update your Tyk organisation JSON object via the Dashboard Admin API. In your organisation's `event_options` section, add an `api_event` object similar to this:
+Update the event options in your Tyk organization’s JSON object through the Dashboard Admin API. Add an `api_event` object like this:
 
 ```json
 {
@@ -64,30 +81,62 @@ To do this, update your Tyk organisation JSON object via the Dashboard Admin API
 }
 ```
 
-Make sure that:
-1. The `webhook` URL resolves to the Backstage backend deployment from the Tyk Dashboard
-2. The `webhook` URL path uses the dashboard name specified in the `app-config.yaml` - the default value `development`, is used in the example above
+Ensure that:
+1. The `webhook` URL can reach the Backstage backend from the Tyk Dashboard.
+2. The URL path matches the dashboard name in the app-config.yaml (e.g., `development`).
 
-Once this is correctly configured, you should see that changes to API data in the Dashboard result in immediate synchronisation by the Backstage entity provider. This can be seen in the entity provider logs:
+Once configured, API changes in the Dashboard will trigger a sync in the entity provider, as seen in the logs:
 
 ```log
 [1] 2024-09-16T10:27:40.015Z catalog info Importing 53 Tyk entities type=plugin entityProvider=tyk-entity-provider-development
 [1] 2024-09-16T10:27:40.025Z backstage info ::ffff:127.0.0.1 - - [16/Sep/2024:10:27:40 +0000] "POST /api/catalog/tyk/development/sync HTTP/1.1" 200 - "-" "Tyk-Dash-Hookshot" type=incomingRequest
 ```
 
-This shows both the entity provider synchronisation confirmation and also the webhook call being received by the entity provider sync endpoint from the Tyk dashboard.
+# Source Location
+
+The entity provider source code is located in the `plugins/catalog-backend-module-tyk` directory.
 
 # Debugging
 
+If you're using Visual Studio Code, you can debug the Backstage backend by running it with the `--inspect` flag:
 
+```sh
+yarn start-backend --inspect
+```
+
+Start the frontend in a separate terminal window:
+
+```sh
+yarn start
+```
+
+You now have both the backend and frontend running, and can start to debug the application.
 
 # Publishing
 
-4. Access to the Tyk Backstage entity provider NPM package https://npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk
+To publish a new version of the Backstage entity provider to NPM:
 
+Prerequisites:
+- Access to the Tyk Backstage entity provider NPM package: [NPM Package](https://npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk)
 
+Publishing Steps:
+1. Navigate to the plugin directory:
+```sh
+cd plugins/catalog-backend-module-tyk
+```
 
+2. Increment the `version` number in the [package manifest](plugins/catalog-backend-module-tyk/package.json).
 
+3. Build the package:
+```sh
+yarn run build
+```
 
-# Publishing changes
+4. Publish to NPM:
+```sh
+npm publish
+```
 
+You'll need to authenticate during the publish process as the package is private. Follow the instructions from the NPM CLI.
+
+After publishing, the new version will be available on the [NPM registry](https://www.npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk?activeTab=versions).
