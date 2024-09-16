@@ -98,7 +98,7 @@ The entity provider source code is located in the `plugins/catalog-backend-modul
 
 # Debugging
 
-If you're using Visual Studio Code, you can debug the Backstage backend by running it with the `--inspect` flag:
+If you're using Visual Studio Code, you can debug the Backstage backend by running it with the `--inspect` flag from the VSCode terminal window:
 
 ```sh
 yarn start-backend --inspect
