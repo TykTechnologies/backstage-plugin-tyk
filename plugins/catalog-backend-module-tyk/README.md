@@ -380,6 +380,16 @@ spec:
   owner: guests
 ```
 
+This yaml file can then be referenced from `catalog.locations` section of the Backstage `app-config.yaml` file:
+
+```yaml
+catalog:
+  locations:
+    # Basic Tyk catalog items that do not come from the import process, including the 'tyk' system
+    - type: file
+      target: tyk-catalog.yaml
+```
+
 Missing entities will not prevent Tyk data from being imported into Backstage, but it may provide an unsatisfactory user experience as Backstage users can encounter 'entity not found' errors through the Backstage user interface.
 
 ### Statically Defined Tyk Entities
