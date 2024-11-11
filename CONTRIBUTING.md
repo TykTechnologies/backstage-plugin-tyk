@@ -9,6 +9,7 @@ Prerequisites:
 1. **Tyk Installation**: Ensure you have access to a Tyk installation, including the Tyk Dashboard URL and API access token.
 2. **Backstage Requirements**: Follow the general prerequisites listed on the [Backstage documentation](https://backstage.io/docs/getting-started/#prerequisites).
 3. **Access to the Tyk Backstage Entity Provider Repository**: [GitHub Repo](https://github.com/TykTechnologies/backstage-tyk-entity-provider).
+4. **Node version**: Ensure a compatible version of Node is available, as per the `engines.node` setting in the [package.json](package.json) file.
 
 Once these prerequisites are in place, proceed with setting up the Backstage development environment.
 
@@ -29,7 +30,8 @@ cd backstage-tyk-entity-provider
 yarn install
 ```
 
-4. Update the `app-config.yaml` file to include your Tyk Dashboard host URL and API token. Update the `tyk.dashboards[].host` and `tyk.dashboards[].token` fields with your actual values:
+4. Create an `app-config.local.yaml`, then add just the Tyk entity provider config to it. Set the Tyk Dashboard host URL and API token using the detail for your Tyk environment. Update the `tyk.dashboards[].host` and `tyk.dashboards[].token` fields with your actual values:
+
 ```yaml
 tyk:
   globalOptions:
@@ -64,6 +66,20 @@ This will launch both the frontend and backend, and you'll see logs for both. If
 [1] 2024-09-16T10:13:21.618Z catalog info Tyk entity provider initialized: tyk-entity-provider-development type=plugin
 [1] 2024-09-16T10:13:23.077Z catalog info Importing 52 Tyk entities type=plugin entityProvider=tyk-entity-provider-development
 ```
+
+## Debugging the Development Environment
+
+### VS Code
+
+Set the VS Code *Auto Attach* feature to *With Flag* - [see VS Code docs](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach). The debugger will then automatically attach to processes launched from the VS Code terminal that include the `--inspect` flag.
+
+To debug the entity provider, launch the Backstage backend with the `--inspect` flag:
+
+```shell
+yarn start-backend --inspect
+```
+
+You can run the Backstage frontend separately, in a different terminal.
 
 ## Using router sync
 
