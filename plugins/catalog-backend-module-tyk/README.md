@@ -483,6 +483,24 @@ Annotation | Value
 
 Setting these annotations allows Backstage to provide additional functionality, such as displaying contextual links when listing API objects in the Backstage user interface.
 
+### Metadata Overrides
+
+When importing data, the entity provider applies default values for the Backstage metadata fields `lifecycle`, `owner`, and `system`. These defaults are defined per `dashboard` in the entity provider configuration and apply to all entities imported using that dashboard configuration.
+
+To override these defaults, specify custom values in the `config_data` field of the Tyk API definition:
+
+```json
+{
+  "backstage": {
+    "lifecycle:": "my lifecycle",
+    "owner": "my owner",
+    "system": "my system"
+  }
+}
+```
+
+These fields must be placed inside a `backstage` object. They are optional - if any field is omitted, the corresponding default value will be used.
+
 ### API Specification
 
 The entity provider automatically sets the API specification type depending on the type of API being imported:
