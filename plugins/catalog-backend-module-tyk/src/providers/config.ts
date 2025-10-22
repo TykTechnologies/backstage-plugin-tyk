@@ -12,6 +12,6 @@ export function readTykConfiguration(config: Config): TykConfig
 export function readTykDashboardConfiguration(config: Config, dashboardName: string): TykDashboardConfig
 {
     const tykConfig = readTykConfiguration(config);
-    const dashboardConfig = tykConfig.dashboards.find((dashboard: TykDashboardConfig): boolean => dashboard.name == dashboardName)!;
+    const dashboardConfig = tykConfig.dashboards.find((dashboard: TykDashboardConfig): boolean => dashboard.name === dashboardName)!;
     return dashboardConfig;
 }
