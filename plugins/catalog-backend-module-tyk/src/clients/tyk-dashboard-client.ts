@@ -51,7 +51,7 @@ export class TykDashboardClient {
 
     const data: APIListResponse = await res.json();
 
-    if (res.status != 200) {
+    if (res.status !== 200) {
       this.log.error(`Error fetching Tyk API definitions from ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
       return [];
     }
@@ -101,7 +101,7 @@ export class TykDashboardClient {
     });
 
     const data: GatewayResponse = await res.json();
-    if (res.status != 200) {
+    if (res.status !== 200) {
       this.log.error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
     }
 

@@ -2,9 +2,9 @@ import {Config} from '@backstage/config';
 import {Logger} from 'winston';
 import {createTemplateAction} from '@backstage/plugin-scaffolder-node';
 import {z} from 'zod';
-import {TykDashboardConfig} from "../../../../../../plugins/catalog-backend-module-tyk/src/providers/types";
-import {API} from "../../../../../../plugins/catalog-backend-module-tyk/src/clients/types";
-import {TykDashboardClient} from "../../../../../../plugins/catalog-backend-module-tyk/src/clients/tyk-dashboard-client";
+import {TykDashboardConfig} from "@tyk-technologies/plugin-catalog-backend-module-tyk/alpha";
+import {API} from "@tyk-technologies/plugin-catalog-backend-module-tyk/alpha";
+import {TykDashboardClient} from "@tyk-technologies/plugin-catalog-backend-module-tyk/alpha";
 
 export const createTykApiAction = (config: Config, logger: Logger) => {
   return createTemplateAction({
@@ -26,7 +26,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
       });
 
       const targetDashboard = dashboardClients.find((dashboard) => {
-        return dashboard.name == ctx.input.targetDashboard;
+        return dashboard.name === ctx.input.targetDashboard;
       });
         
       if (!targetDashboard) {

@@ -4,7 +4,7 @@ import { useApi, configApiRef } from '@backstage/core-plugin-api';
 
 export const CreateApiComponent = () => {
   const config = useApi(configApiRef);
-  const backendUrl = config.getString('backend.baseUrl') + '/api/proxy/tyk/apis';
+  const backendUrl = `${config.getString('backend.baseUrl')}/api/proxy/tyk/apis`;
   const kebabCase: (s: string) => string = (s: string) => {
     return s.replace(/([a-z])([A-Z])/g, "$1-$2")
     .replace(/[\s_]+/g, '-')
@@ -13,7 +13,6 @@ export const CreateApiComponent = () => {
 
   const handleClick = async (event: any) => {
     event.preventDefault();
-    console.log(event);
     const apiNameValue = event.target.apiname.value;
     const kebabApiNameValue = kebabCase(apiNameValue);
 
@@ -39,14 +38,14 @@ export const CreateApiComponent = () => {
       })
 
       const data = await response.json();
-      if (response.status != 200) {
-        alert('Error adding API to Tyk - see console');
-        console.error(data);
-      } else {
-        alert('API added to Tyk');
+      if (response.status !== 200) {
+        // Error adding API - check network logs for details
+        throw new Error(`Failed to add API: ${JSON.stringify(data)}`);
       }
+      // API added successfully
     } catch (error) {
-      console.error(error);
+      // Error during API creation - check network logs
+      throw error;
     }
   };
 
