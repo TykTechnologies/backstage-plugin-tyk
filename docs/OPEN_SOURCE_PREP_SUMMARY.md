@@ -1,7 +1,7 @@
 # Open Source Preparation - Completion Summary
 
 **Date:** 2024-10-22
-**Repository:** backstage-plugin-tyk (formerly backstage-tyk-entity-provider)
+**Repository:** backstage-plugin-tyk
 **Target License:** AGPL-3.0
 **Status:** Ready for launch (with minor items pending)
 
