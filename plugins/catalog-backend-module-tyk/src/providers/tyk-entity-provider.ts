@@ -243,8 +243,8 @@ export class TykEntityProvider implements EntityProvider {
   }
 
   toApiEntity(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
-    const title: string = api.api_definition.name;
-    const tags: string[] = [];
+    let title: string = api.api_definition.name;
+    let tags: string[] = [];
 
     const tykCategoryPrefix = '#';
 
@@ -308,7 +308,7 @@ export class TykEntityProvider implements EntityProvider {
     // note:
     //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
     //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
-    let apiEntity: ApiEntityV1alpha1 = {
+    const apiEntity: ApiEntityV1alpha1 = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'API',
       metadata: {
@@ -366,7 +366,7 @@ export class TykEntityProvider implements EntityProvider {
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this is best practice for open-source plugins, so that Tyk labels can be distinguished from others
-        apiEntity.metadata.labels!["tyk.io/" + label.key] = label.value;
+        apiEntity.metadata.labels![`tyk.io/${label.key}`] = label.value;
       }
     }
 
