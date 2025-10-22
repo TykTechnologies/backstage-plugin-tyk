@@ -391,8 +391,7 @@ export class TykEntityProvider implements EntityProvider {
     });
 
     // discover the APIs
-    let apis: API[] = []
-    apis = await this.dashboardClient.getApiList();
+    const apis: API[] = await this.dashboardClient.getApiList();
     const apiEntities: ApiEntityV1alpha1[] = apis.map((api: API) => {
       return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
@@ -413,7 +412,7 @@ export class TykEntityProvider implements EntityProvider {
     const systemNodes = await this.dashboardClient.getSystemNodes();
 
     for (const node of systemNodes.data.nodes) {
-      let gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
+      const gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
 
       enrichedGateways.push({
         id: node.id,
