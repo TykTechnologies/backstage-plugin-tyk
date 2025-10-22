@@ -244,7 +244,7 @@ export class TykEntityProvider implements EntityProvider {
 
   toApiEntity(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
     let title: string = api.api_definition.name;
-    let tags: string[] = [];
+    const tags: string[] = [];
 
     const tykCategoryPrefix = '#';
 
