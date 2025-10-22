@@ -4,15 +4,11 @@ The Tyk Backstage entity provider imports Tyk API definitions and components int
 
 To use the entity provider, you will need:
 - An active Tyk installation with a valid dashboard API token
-- An NPM access token for the Tyk Backstage Entity Provider NPM package
+- A Backstage application (v1.18.0 or later recommended)
 
 ### 1. Package Installation
 
-An NPM access token is required to access the Tyk Backstage Entity Provider package. Please acquire an access token from your Tyk representitive.
-
-Add the token to the `.npmrc` configuration file as an `_authtoken` - see the [auth-related-configuration](https://docs.npmjs.com/cli/v9/configuring-npm/npmrc#auth-related-configuration) section of the NPM documentation for more guidance.
-
-To install the package, run this command from the Backstage root directory:
+The Tyk Backstage Plugin is available as a public NPM package. To install it, run this command from the Backstage root directory:
 
 ```shell
 yarn --cwd packages/backend add @tyk-technologies/plugin-catalog-backend-module-tyk

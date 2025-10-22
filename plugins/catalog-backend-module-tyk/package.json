@@ -4,7 +4,25 @@
   "version": "0.1.13",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "license": "MPL-2.0",
+  "license": "AGPL-3.0",
+  "author": "Tyk Technologies",
+  "homepage": "https://github.com/TykTechnologies/backstage-plugin-tyk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TykTechnologies/backstage-plugin-tyk.git",
+    "directory": "plugins/catalog-backend-module-tyk"
+  },
+  "bugs": {
+    "url": "https://github.com/TykTechnologies/backstage-plugin-tyk/issues"
+  },
+  "keywords": [
+    "backstage",
+    "backstage-plugin",
+    "tyk",
+    "api-gateway",
+    "entity-provider",
+    "catalog"
+  ],
   "private": false,
   "publishConfig": {
     "access": "public",

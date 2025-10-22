@@ -8,7 +8,7 @@ Prerequisites:
 
 1. **Tyk Installation**: Ensure you have access to a Tyk installation, including the Tyk Dashboard URL and API access token.
 2. **Backstage Requirements**: Follow the general prerequisites listed on the [Backstage documentation](https://backstage.io/docs/getting-started/#prerequisites).
-3. **Access to the Tyk Backstage Entity Provider Repository**: [GitHub Repo](https://github.com/TykTechnologies/backstage-tyk-entity-provider).
+3. **Access to the Tyk Backstage Plugin Repository**: [GitHub Repo](https://github.com/TykTechnologies/backstage-plugin-tyk).
 4. **Node version**: Ensure a compatible version of Node is available, as per the `engines.node` setting in the [package.json](package.json) file.
 
 Once these prerequisites are in place, proceed with setting up the Backstage development environment.
@@ -17,12 +17,12 @@ Steps to Set Up:
 
 1. Clone the repository:
 ```sh
-git clone https://github.com/TykTechnologies/backstage-tyk-entity-provider
+git clone https://github.com/TykTechnologies/backstage-plugin-tyk
 ```
 
 2. Navigate to the cloned directory:
 ```sh
-cd backstage-tyk-entity-provider
+cd backstage-plugin-tyk
 ```
 
 3. Install Backstage packages:
@@ -130,29 +130,55 @@ You now have both the backend and frontend running, and can start to debug the a
 
 # Publishing
 
-To publish a new version of the Backstage entity provider to NPM:
+To publish a new version of the Tyk Backstage Plugin to NPM:
 
-Prerequisites:
-- Access to the Tyk Backstage entity provider NPM package: [NPM Package](https://npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk)
+## Prerequisites
 
-Publishing Steps:
+- Write access to the [@tyk-technologies](https://www.npmjs.com/org/tyk-technologies) NPM organization
+- NPM account authenticated locally (`npm login`)
+
+## Publishing Steps
+
 1. Navigate to the plugin directory:
 ```sh
 cd plugins/catalog-backend-module-tyk
 ```
 
-2. Increment the `version` number in the [package manifest](plugins/catalog-backend-module-tyk/package.json).
+2. Increment the `version` number in the [package manifest](plugins/catalog-backend-module-tyk/package.json) following [semantic versioning](https://semver.org/):
+   - **Patch** (0.1.13 → 0.1.14): Bug fixes and minor updates
+   - **Minor** (0.1.13 → 0.2.0): New features, backward compatible
+   - **Major** (0.1.13 → 1.0.0): Breaking changes
 
-3. Build the package:
+3. Update the [CHANGELOG.md](CHANGELOG.md) with the new version and changes
+
+4. Build the package:
 ```sh
 yarn run build
 ```
 
-4. Publish to NPM:
+5. Verify the package contents:
+```sh
+npm pack --dry-run
+```
+
+6. Publish to NPM:
 ```sh
 npm publish
 ```
 
-You'll need to authenticate during the publish process as the package is private. Follow the instructions from the NPM CLI.
+7. Create a git tag for the release:
+```sh
+git tag -a v0.1.14 -m "Release v0.1.14"
+git push origin v0.1.14
+```
+
+8. Create a GitHub release with the changelog
 
 After publishing, the new version will be available on the [NPM registry](https://www.npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk?activeTab=versions).
+
+## Troubleshooting
+
+If you encounter authentication issues:
+1. Ensure you're logged in: `npm whoami`
+2. If not logged in: `npm login`
+3. Verify you have access to the @tyk-technologies organization
