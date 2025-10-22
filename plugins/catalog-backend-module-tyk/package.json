@@ -58,7 +58,9 @@
   },
   "dependencies": {
     "@backstage/backend-common": "^0.21.6",
-    "@backstage/backend-plugin-api": "^0.6.16"
+    "@backstage/backend-plugin-api": "^0.6.16",
+    "winston": "^3.8.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "^0.3.6",
