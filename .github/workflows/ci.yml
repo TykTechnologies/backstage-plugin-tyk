@@ -61,6 +61,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Generate type declarations
+        run: yarn tsc
+
       - name: Build plugin
         working-directory: plugins/catalog-backend-module-tyk
         run: yarn build

@@ -14,6 +14,7 @@ coverage
 
 # Dependencies
 node_modules/
+.node/
 
 # Yarn 3 files
 .pnp.*
@@ -53,4 +54,3 @@ site
 # IDEs
 .vscode
 .idea
-
