@@ -42,7 +42,7 @@ export class TykEntityProvider implements EntityProvider {
     }
   ): TykEntityProvider[] {
     const tykConfig = readTykConfiguration(options.config);
-    let tykEntityProviders: TykEntityProvider[] = [];
+    const tykEntityProviders: TykEntityProvider[] = [];
 
     if (!tykConfig.globalOptions.router.enabled && !tykConfig.globalOptions.scheduler.enabled) {
       throw new Error(`Tyk entity provider has no methods enabled for data collection - no data will be imported`);
@@ -51,7 +51,7 @@ export class TykEntityProvider implements EntityProvider {
     tykConfig.dashboards.forEach((tykDashboardConfig: TykDashboardConfig) => {
       options.logger.debug(`Initializing Tyk entity provider from config: ${tykDashboardConfig.name}`);
 
-      let ep = new TykEntityProvider({
+      const ep = new TykEntityProvider({
         logger: options.logger,
         globalOptionsConfig: tykConfig.globalOptions,
         dashboardConfig: tykDashboardConfig,
@@ -143,7 +143,7 @@ export class TykEntityProvider implements EntityProvider {
     if (this.globalOptionsConfig.scheduler.enabled) {
       this.logger.debug("Scheduling Tyk entity provider task");
 
-      let frequency: number = this.globalOptionsConfig.scheduler.frequency || this.defaultSchedulerFrequency;
+      const frequency: number = this.globalOptionsConfig.scheduler.frequency || this.defaultSchedulerFrequency;
 
       await scheduler.scheduleTask({
         id: `run_tyk_entity_provider_${this.dashboardConfig.name}_refresh`,
@@ -244,7 +244,7 @@ export class TykEntityProvider implements EntityProvider {
 
   toApiEntity(api: API, config: TykDashboardConfig): ApiEntityV1alpha1 {
     let title: string = api.api_definition.name;
-    let tags: string[] = [];
+    const tags: string[] = [];
 
     const tykCategoryPrefix = '#';
 
@@ -281,24 +281,24 @@ export class TykEntityProvider implements EntityProvider {
     let linkPathPart: string = "designer";
     const apiEditUrl: string = `${config.host}/apis/${linkPathPart}/${api.api_definition.api_id}`;
 
-    let authMechamism = (api: API): string => {
-      if (api.api_definition.use_keyless === true) {
+    const authMechamism = (apiParam: API): string => {
+      if (apiParam.api_definition.use_keyless === true) {
         return 'keyless';
       }
 
-      if (api.api_definition.use_jwt === true) {
+      if (apiParam.api_definition.use_jwt === true) {
         return 'jwt';
       }
 
-      if (api.api_definition.use_oauth2 === true) {
+      if (apiParam.api_definition.use_oauth2 === true) {
         return 'oauth2';
       }
 
-      if (api.api_definition.use_basic_auth === true) {
+      if (apiParam.api_definition.use_basic_auth === true) {
         return 'basic';
       }
 
-      if (api.api_definition.use_standard_auth === true) {
+      if (apiParam.api_definition.use_standard_auth === true) {
         return 'auth-token';
       }
       return 'unknown';
@@ -308,7 +308,7 @@ export class TykEntityProvider implements EntityProvider {
     // note:
     //   - the Tyk API definition id value is mapped to the Backstage name field, because the name must be a unique value
     //   - the Tyk API definition name is mapped to the Backstage title field, to display the API name in the Backstage UI
-    let apiEntity: ApiEntityV1alpha1 = {
+    const apiEntity: ApiEntityV1alpha1 = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'API',
       metadata: {
@@ -351,7 +351,7 @@ export class TykEntityProvider implements EntityProvider {
     };
 
     // reset specific fields if the API is not a standard Tyk API definition 
-    if (typeof api.oas == "object") {
+    if (typeof api.oas === "object") {
       apiEntity.spec.type = 'openapi';
       apiEntity.spec.definition = yaml.dump(api.oas);
       linkPathPart = "oas";
@@ -366,7 +366,7 @@ export class TykEntityProvider implements EntityProvider {
       for (const label of api.api_definition.config_data?.backstage?.labels!) {
         // use to 'tyk.io/' prefix to distinguish that the labels are from Tyk
         // this is best practice for open-source plugins, so that Tyk labels can be distinguished from others
-        apiEntity.metadata.labels!["tyk.io/" + label.key] = label.value;
+        apiEntity.metadata.labels![`tyk.io/${label.key}`] = label.value;
       }
     }
 
@@ -391,13 +391,12 @@ export class TykEntityProvider implements EntityProvider {
     });
 
     // discover the APIs
-    let apis: API[] = []
-    apis = await this.dashboardClient.getApiList();
+    const apis: API[] = await this.dashboardClient.getApiList();
     const apiEntities: ApiEntityV1alpha1[] = apis.map((api: API) => {
       return this.toApiEntity(api, this.dashboardClient.getConfig());
     });
 
-    if (apiEntities == undefined || apiEntities.length == 0) {
+    if (apiEntities === undefined || apiEntities.length === 0) {
       this.logger.warn(`No Tyk API definitions found`);
     }
 
@@ -406,14 +405,14 @@ export class TykEntityProvider implements EntityProvider {
       locationKey: `${this.getProviderName}`,
     })));
 
-    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length == 1 ? "" : "s"}`);
+    this.logger.debug(`Found ${apiEntities.length} Tyk API${apiEntities.length === 1 ? "" : "s"}`);
 
     // discover the gateways
     const enrichedGateways: enrichedGateway[] = [];
     const systemNodes = await this.dashboardClient.getSystemNodes();
 
     for (const node of systemNodes.data.nodes) {
-      let gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
+      const gateway = await this.dashboardClient.getGateway({node_id: node.id, hostname: node.hostname});
 
       enrichedGateways.push({
         id: node.id,
@@ -423,11 +422,11 @@ export class TykEntityProvider implements EntityProvider {
       });
     }
 
-    if (enrichedGateways == undefined || enrichedGateways.length == 0) {
+    if (enrichedGateways === undefined || enrichedGateways.length === 0) {
       this.logger.warn(`No Tyk Gateways found at ${this.dashboardConfig.name} Dashboard`);
     }
 
-    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length == 1 ? "" : "s"}`);
+    this.logger.debug(`Found ${enrichedGateways.length} Tyk Gateway${enrichedGateways.length === 1 ? "" : "s"}`);
 
     const gatewayComponentEntities: ComponentEntityV1alpha1[] = enrichedGateways.map((gateway: enrichedGateway): ComponentEntityV1alpha1 => {
       return this.toGatewayComponentEntity(apis, gateway);
@@ -449,7 +448,7 @@ export class TykEntityProvider implements EntityProvider {
     // try/catch block is used to avoid performing a sync if an error occurs, as it could result in an incorrect data mutation
     try {
       const deferredEntities: DeferredEntity[] = await this.discoverAllEntities()
-      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length == 1 ? "entity" : "entities"}`);
+      this.logger.info(`Importing ${deferredEntities.length} Tyk ${deferredEntities.length === 1 ? "entity" : "entities"}`);
       await this.connection!.applyMutation({
         type: 'full',
         entities: deferredEntities,

@@ -8,7 +8,13 @@
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "dist-types",
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": {
+      "@tyk-technologies/plugin-catalog-backend-module-tyk/*": [
+        "plugins/catalog-backend-module-tyk/src/*"
+      ]
+    }
   }
 }

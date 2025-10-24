@@ -3,7 +3,9 @@ import { render, screen } from '@testing-library/react';
 import { ExampleFetchComponent } from './ExampleFetchComponent';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
-import { setupRequestMockHandlers } from '@backstage/test-utils';
+import { setupRequestMockHandlers, TestApiProvider } from '@backstage/test-utils';
+import { fetchApiRef } from '@backstage/core-plugin-api';
+import fetch from 'cross-fetch';
 
 describe('ExampleFetchComponent', () => {
   const server = setupServer();
@@ -19,7 +21,11 @@ describe('ExampleFetchComponent', () => {
     );
   });
   it('should render', async () => {
-    await render(<ExampleFetchComponent />);
+    await render(
+      <TestApiProvider apis={[[fetchApiRef, { fetch }]]}>
+        <ExampleFetchComponent />
+      </TestApiProvider>,
+    );
     expect(await screen.findByTestId('progress')).toBeInTheDocument();
   });
 });

@@ -1,13 +1,12 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: tyk-backstage
-  description: An example of a Backstage application.
-  # Example for optional annotations
-  # annotations:
-  #   github.com/project-slug: backstage/backstage
-  #   backstage.io/techdocs-ref: dir:.
+  name: tyk-backstage-plugin
+  description: Tyk Backstage Plugin - Import Tyk API definitions into your Backstage catalog
+  annotations:
+    github.com/project-slug: TykTechnologies/backstage-plugin-tyk
+    backstage.io/techdocs-ref: dir:.
 spec:
-  type: website
-  owner: john@example.com
-  lifecycle: experimental
+  type: library
+  owner: guests
+  lifecycle: production

@@ -51,7 +51,7 @@ export class TykDashboardClient {
 
     const data: APIListResponse = await res.json();
 
-    if (res.status != 200) {
+    if (res.status !== 200) {
       this.log.error(`Error fetching Tyk API definitions from ${this.config.name} Dashboard: ${res.status} ${res.statusText}`);
       return [];
     }
@@ -69,8 +69,8 @@ export class TykDashboardClient {
     });
 
     const data = await response.json();
-    if (response.status != 200) {
-      this.log.error(`Error adding Tyk API ${api.api_definition.name} to ${this.config.name}:` + data);
+    if (response.status !== 200) {
+      this.log.error(`Error adding Tyk API ${api.api_definition.name} to ${this.config.name}: ${JSON.stringify(data)}`);
       return false;
     }
 
@@ -86,7 +86,7 @@ export class TykDashboardClient {
     });
 
     const data: TykDashboardSystemNodesResponse = await response.json();
-    if (response.status != 200) {
+    if (response.status !== 200) {
       this.log.error(`Error fetching Tyk system nodes from ${this.config.name}: ${response.status} ${response.statusText}`);
     }
 
@@ -101,7 +101,7 @@ export class TykDashboardClient {
     });
 
     const data: GatewayResponse = await res.json();
-    if (res.status != 200) {
+    if (res.status !== 200) {
       this.log.error(`Error fetching Tyk gateway from ${this.config.name}: ${res.status} ${res.statusText}`);
     }
 

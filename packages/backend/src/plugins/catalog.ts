@@ -4,7 +4,7 @@ import {Router} from 'express';
 import {PluginEnvironment} from '../types';
 import {
   TykEntityProvider
-} from '../../../../plugins/catalog-backend-module-tyk';
+} from '@tyk-technologies/plugin-catalog-backend-module-tyk';
 
 export default async function createPlugin(
   env: PluginEnvironment,

@@ -93,7 +93,7 @@ export const APIListComponent = () => {
   const backendUrl = config.getString('backend.baseUrl');
   
   const {value, loading, error} = useAsync(async (): Promise<APIDefinition[]> => {
-    const response = await fetch(backendUrl + '/api/proxy/tyk/apis', {});
+    const response = await fetch(`${backendUrl}/api/proxy/tyk/apis`, {});
 
     const data = await response.json();
     const apis = data.apis;

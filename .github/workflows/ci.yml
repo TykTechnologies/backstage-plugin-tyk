@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run lint
+        run: yarn lint:all
+
+      - name: Run tests
+        run: yarn test:all --coverage
+
+      - name: Build
+        run: yarn build:all
+
+      - name: Upload coverage to Codecov
+        if: matrix.node-version == '20.x'
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  package-check:
+    name: Package Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Generate type declarations
+        run: yarn tsc
+
+      - name: Build plugin
+        working-directory: plugins/catalog-backend-module-tyk
+        run: yarn build
+
+      - name: Check package contents
+        working-directory: plugins/catalog-backend-module-tyk
+        run: npm pack --dry-run

@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Tyk Community Forum
+    url: https://community.tyk.io/
+    about: Ask questions and discuss with the community
+  - name: GitHub Discussions
+    url: https://github.com/TykTechnologies/backstage-plugin-tyk/discussions
+    about: Discuss ideas and ask questions
+  - name: Tyk Documentation
+    url: https://tyk.io/docs/
+    about: Check the official Tyk documentation
+  - name: Backstage Documentation
+    url: https://backstage.io/docs
+    about: Learn more about Backstage

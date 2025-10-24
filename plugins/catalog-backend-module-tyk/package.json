@@ -4,7 +4,25 @@
   "version": "0.1.13",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "license": "MPL-2.0",
+  "license": "AGPL-3.0",
+  "author": "Tyk Technologies",
+  "homepage": "https://github.com/TykTechnologies/backstage-plugin-tyk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TykTechnologies/backstage-plugin-tyk.git",
+    "directory": "plugins/catalog-backend-module-tyk"
+  },
+  "bugs": {
+    "url": "https://github.com/TykTechnologies/backstage-plugin-tyk/issues"
+  },
+  "keywords": [
+    "backstage",
+    "backstage-plugin",
+    "tyk",
+    "api-gateway",
+    "entity-provider",
+    "catalog"
+  ],
   "private": false,
   "publishConfig": {
     "access": "public",
@@ -40,7 +58,15 @@
   },
   "dependencies": {
     "@backstage/backend-common": "^0.21.6",
-    "@backstage/backend-plugin-api": "^0.6.16"
+    "@backstage/backend-plugin-api": "^0.6.16",
+    "@backstage/backend-tasks": "^0.5.21",
+    "@backstage/catalog-model": "^1.4.5",
+    "@backstage/config": "^1.2.0",
+    "@backstage/plugin-catalog-node": "^1.11.1",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "winston": "^3.8.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "^0.3.6",
