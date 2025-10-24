@@ -1,8 +1,48 @@
+# Contributing Guide
+
 This guide explains how to set up your development environment and contribute to the project.
 
 For details on how the entity provider works, refer to the [Entity Provider README](plugins/catalog-backend-module-tyk/README.md).
 
-# Development Environment Setup
+## Contributor License Agreement
+
+We'd love to accept your patches! Before we can take them, we have to jump a couple of legal hurdles.
+
+**The [Tyk Contributor License Agreement](Tyk-Contributor-License-Agreement.pdf) must be signed by all contributors.** You will be automatically asked to sign the CLA once a PR is created.
+
+Once you are CLA'ed, we'll be able to accept your pull requests. For any issues that you face during this process, please create a GitHub issue explaining the problem and we will help get it sorted out.
+
+**NOTE**: Only original source code from you and other people that have signed the CLA can be accepted into the repository. This policy does not apply to vendor.
+
+### CLA Terms Summary
+
+The following terms are used throughout this agreement:
+
+**You** - the person or legal entity including its affiliates asked to accept this agreement. An affiliate is any entity that controls or is controlled by the legal entity, or is under common control with it.
+
+**Project** - is an umbrella term that refers to any and all Tyk Technologies open source projects.
+
+**Contribution** - any type of work that is submitted to a Project, including any modifications or additions to existing work.
+
+**Submitted** - conveyed to a Project via a pull request, commit, issue, or any form of electronic, written, or verbal communication with Tyk Technologies, contributors or maintainers.
+
+#### 1. Grant of Copyright License
+
+Subject to the terms and conditions of this agreement, You grant to the Projects' maintainers, contributors, users and to Tyk Technologies a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute Your contributions and such derivative works. Except for this license, You reserve all rights, title, and interest in your contributions.
+
+#### 2. Grant of Patent License
+
+Subject to the terms and conditions of this agreement, You grant to the Projects' maintainers, contributors, users and to Tyk Technologies a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as stated in this section) patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer your contributions, where such license applies only to those patent claims licensable by you that are necessarily infringed by your contribution or by combination of your contribution with the project to which this contribution was submitted.
+
+If any entity institutes patent litigation - including cross-claim or counterclaim in a lawsuit - against You alleging that your contribution or any project it was submitted to constitutes or is responsible for direct or contributory patent infringement, then any patent licenses granted to that entity under this agreement shall terminate as of the date such litigation is filed.
+
+#### 3. Source of Contribution
+
+Your contribution is either your original creation, based upon previous work that, to the best of your knowledge, is covered under an appropriate open source license and you have the right under that license to submit that work with modifications, whether created in whole or in part by you, or you have clearly identified the source of the contribution and any license or other restriction (like related patents, trademarks, and license agreements) of which you are personally aware.
+
+**For the full legal terms, please see the [formal Contributor License Agreement PDF](Tyk-Contributor-License-Agreement.pdf).**
+
+## Development Environment Setup
 
 Prerequisites:
 
@@ -85,7 +125,7 @@ You can run the Backstage frontend separately, in a different terminal.
 
 Router sync is enabled by default, but it only sets up the listen paths in the Backstage entity provider. To ensure that your Tyk Dashboard triggers the sync when an API definition changes, configure a webhook in your Tyk organization.
 
-Update the event options in your Tyk organization’s JSON object through the Dashboard Admin API. Add an `api_event` object like this:
+Update the event options in your Tyk organization's JSON object through the Dashboard Admin API. Add an `api_event` object like this:
 
 ```json
 {
@@ -108,11 +148,11 @@ Once configured, API changes in the Dashboard will trigger a sync in the entity 
 [1] 2024-09-16T10:27:40.025Z backstage info ::ffff:127.0.0.1 - - [16/Sep/2024:10:27:40 +0000] "POST /api/catalog/tyk/development/sync HTTP/1.1" 200 - "-" "Tyk-Dash-Hookshot" type=incomingRequest
 ```
 
-# Source Location
+## Source Location
 
 The entity provider source code is located in the `plugins/catalog-backend-module-tyk` directory.
 
-# Debugging
+## Debugging
 
 If you're using Visual Studio Code, you can debug the Backstage backend by running it with the `--inspect` flag from the VSCode terminal window:
 
@@ -128,16 +168,16 @@ yarn start
 
 You now have both the backend and frontend running, and can start to debug the application.
 
-# Publishing
+## Publishing
 
 To publish a new version of the Tyk Backstage Plugin to NPM:
 
-## Prerequisites
+### Prerequisites
 
 - Write access to the [@tyk-technologies](https://www.npmjs.com/org/tyk-technologies) NPM organization
 - NPM account authenticated locally (`npm login`)
 
-## Publishing Steps
+### Publishing Steps
 
 1. Navigate to the plugin directory:
 ```sh
@@ -176,7 +216,7 @@ git push origin v0.1.14
 
 After publishing, the new version will be available on the [NPM registry](https://www.npmjs.com/package/@tyk-technologies/plugin-catalog-backend-module-tyk?activeTab=versions).
 
-## Troubleshooting
+### Troubleshooting
 
 If you encounter authentication issues:
 1. Ensure you're logged in: `npm whoami`
