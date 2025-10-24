@@ -17,7 +17,8 @@ export default async function createPlugin(
   const integrations = ScmIntegrations.fromConfig(env.config);
 
   const builtInActions = createBuiltinActions({
-    integrations,
+    // Cast due to potential duplicate @backstage/integration versions during monorepo tsc
+    integrations: integrations as unknown as any,
     catalogClient,
     config: env.config,
     reader: env.reader,

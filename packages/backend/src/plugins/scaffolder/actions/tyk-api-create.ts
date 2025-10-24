@@ -10,12 +10,13 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
   return createTemplateAction({
     id: 'tyk:api:create',
     schema: {
-      input: z.object ({
+      // Cast to any to avoid zod type mismatch across workspace subtrees
+      input: z.object({
         name: z.string(),
         listenPath: z.string(),
         targetUrl: z.string(),
         targetDashboard: z.string(),
-      }),
+      }) as any,
     },
     async handler(ctx) {
       logger.info('Running tyk:api:create template action');
@@ -36,7 +37,7 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
       // scaffold a basic API combining required fields with the form input data
       const newApi: API = {
         api_definition: {
-          name: ctx.input.name,
+          name: String((ctx as any).input.name),
           api_id: "",
           use_keyless: true,
           version_data: {
@@ -45,8 +46,8 @@ export const createTykApiAction = (config: Config, logger: Logger) => {
           },
           tags: [],
           proxy: {
-            listen_path: `/${ctx.input.listenPath}/`,
-            target_url: ctx.input.targetUrl,
+            listen_path: `/${String((ctx as any).input.listenPath)}/`,
+            target_url: String((ctx as any).input.targetUrl),
             strip_listen_path: true
           },          
           active: true,
