@@ -22,5 +22,5 @@ jobs:
           installation-id: ${{ secrets.PROBE_APP_INSTALLATION_ID }}
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_API_URL: ${{ secrets.GOOGLE_API_URL }}
           ENABLE_FACT_VALIDATION: 'true'
-
